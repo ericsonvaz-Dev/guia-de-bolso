@@ -163,7 +163,21 @@
   --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.551 0.027 264.364);
+  /* Design system financeiro (dark) */
+  --negativo: oklch(0.62 0.19 27.5);
+  --negativo-foreground: oklch(0.984 0.003 247.858);
+  --saldo: oklch(0.62 0.1 251);
+  --saldo-foreground: oklch(0.129 0.042 264.695);
+  --receita: oklch(0.65 0.15 145.5);
+  --receita-foreground: oklch(0.129 0.042 264.695);
+  --pendente: oklch(0.82 0.16 78);
+  --pendente-bg: oklch(0.32 0.06 78);
+  --pago: oklch(0.68 0.15 145.5);
+  --pago-bg: oklch(0.3 0.06 148);
+  --parcela: oklch(0.62 0.19 305);
+  --parcela-foreground: oklch(0.984 0.003 247.858);
 }
+
 
 @layer base {
   * {
