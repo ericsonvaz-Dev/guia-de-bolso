@@ -11,7 +11,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/auth")({
+  // A sessão do Supabase vive no localStorage; renderizar só no cliente evita
+  // divergência de hidratação entre o HTML do servidor e o estado real.
+  ssr: false,
   head: () => ({
+
     meta: [
       { title: "Entrar | Controle Financeiro Pessoal" },
       {
