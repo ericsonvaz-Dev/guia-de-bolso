@@ -109,7 +109,26 @@
   --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
   --sidebar-border: oklch(0.929 0.013 255.508);
   --sidebar-ring: oklch(0.704 0.04 256.788);
+  /* Design system financeiro (light) */
+  --negativo: oklch(0.505 0.191 27.5); /* #C62828 */
+  --negativo-foreground: oklch(0.984 0.003 247.858);
+  --saldo: oklch(0.383 0.086 251); /* #1F4E78 */
+  --saldo-foreground: oklch(0.984 0.003 247.858);
+  --receita: oklch(0.512 0.132 145.5); /* #2E7D32 */
+  --receita-foreground: oklch(0.984 0.003 247.858);
+  --pendente: oklch(0.767 0.157 78); /* #F9A825 */
+  --pendente-bg: oklch(0.964 0.041 96); /* #FFF3CD */
+  --pago: oklch(0.512 0.132 145.5); /* #2E7D32 */
+  --pago-bg: oklch(0.913 0.071 148); /* #C6EFCE */
+  --parcela: oklch(0.403 0.199 305); /* #6A1B9A */
+  --parcela-foreground: oklch(0.984 0.003 247.858);
+  /* Marca alinhada ao azul de saldo positivo */
+  --primary: oklch(0.383 0.086 251);
+  --primary-foreground: oklch(0.984 0.003 247.858);
+  --ring: oklch(0.383 0.086 251);
+  --sidebar-primary: oklch(0.383 0.086 251);
 }
+
 
 .dark {
   --background: oklch(0.129 0.042 264.695);
