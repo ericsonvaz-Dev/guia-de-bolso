@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedContasFixasRouteImport } from './routes/_authenticated/contas-fixas'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedMesRouteImport } from './routes/_authenticated/mes'
+import { Route as AuthenticatedParcelasRouteImport } from './routes/_authenticated/parcelas'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -46,6 +47,11 @@ const AuthenticatedMesRoute = AuthenticatedMesRouteImport.update({
   path: '/mes',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedParcelasRoute = AuthenticatedParcelasRouteImport.update({
+  id: '/parcelas',
+  path: '/parcelas',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -53,6 +59,7 @@ export interface FileRoutesByFullPath {
   '/contas-fixas': typeof AuthenticatedContasFixasRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/mes': typeof AuthenticatedMesRoute
+  '/parcelas': typeof AuthenticatedParcelasRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -60,6 +67,7 @@ export interface FileRoutesByTo {
   '/contas-fixas': typeof AuthenticatedContasFixasRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/mes': typeof AuthenticatedMesRoute
+  '/parcelas': typeof AuthenticatedParcelasRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -69,12 +77,14 @@ export interface FileRoutesById {
   '/_authenticated/contas-fixas': typeof AuthenticatedContasFixasRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/mes': typeof AuthenticatedMesRoute
+  '/_authenticated/parcelas': typeof AuthenticatedParcelasRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/contas-fixas' | '/dashboard' | '/mes'
+  fullPaths:
+    '/' | '/auth' | '/contas-fixas' | '/dashboard' | '/mes' | '/parcelas'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/contas-fixas' | '/dashboard' | '/mes'
+  to: '/' | '/auth' | '/contas-fixas' | '/dashboard' | '/mes' | '/parcelas'
   id:
     | '__root__'
     | '/'
@@ -83,6 +93,7 @@ export interface FileRouteTypes {
     | '/_authenticated/contas-fixas'
     | '/_authenticated/dashboard'
     | '/_authenticated/mes'
+    | '/_authenticated/parcelas'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -135,6 +146,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/parcelas': {
+      id: '/_authenticated/parcelas'
+      path: '/parcelas'
+      fullPath: '/parcelas'
+      preLoaderRoute: typeof AuthenticatedParcelasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -142,12 +160,14 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedContasFixasRoute: typeof AuthenticatedContasFixasRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedMesRoute: typeof AuthenticatedMesRoute
+  AuthenticatedParcelasRoute: typeof AuthenticatedParcelasRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedContasFixasRoute: AuthenticatedContasFixasRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedMesRoute: AuthenticatedMesRoute,
+  AuthenticatedParcelasRoute: AuthenticatedParcelasRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
