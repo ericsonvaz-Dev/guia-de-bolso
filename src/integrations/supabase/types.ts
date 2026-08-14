@@ -14,18 +14,197 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      categorias: {
+        Row: {
+          cor: string
+          created_at: string
+          id: string
+          nome: string
+          tipo: Database["public"]["Enums"]["tipo_movimento"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cor?: string
+          created_at?: string
+          id?: string
+          nome: string
+          tipo: Database["public"]["Enums"]["tipo_movimento"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cor?: string
+          created_at?: string
+          id?: string
+          nome?: string
+          tipo?: Database["public"]["Enums"]["tipo_movimento"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      contas_fixas: {
+        Row: {
+          ativo: boolean
+          categoria_id: string | null
+          created_at: string
+          descricao: string
+          dia: number
+          id: string
+          updated_at: string
+          user_id: string
+          valor: number
+        }
+        Insert: {
+          ativo?: boolean
+          categoria_id?: string | null
+          created_at?: string
+          descricao: string
+          dia: number
+          id?: string
+          updated_at?: string
+          user_id: string
+          valor?: number
+        }
+        Update: {
+          ativo?: boolean
+          categoria_id?: string | null
+          created_at?: string
+          descricao?: string
+          dia?: number
+          id?: string
+          updated_at?: string
+          user_id?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contas_fixas_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lancamentos: {
+        Row: {
+          ano: number
+          categoria_id: string | null
+          created_at: string
+          data: string
+          descricao: string
+          id: string
+          mes: number
+          status: Database["public"]["Enums"]["status_lancamento"]
+          tipo: Database["public"]["Enums"]["tipo_movimento"]
+          updated_at: string
+          user_id: string
+          valor: number
+        }
+        Insert: {
+          ano: number
+          categoria_id?: string | null
+          created_at?: string
+          data?: string
+          descricao: string
+          id?: string
+          mes: number
+          status?: Database["public"]["Enums"]["status_lancamento"]
+          tipo: Database["public"]["Enums"]["tipo_movimento"]
+          updated_at?: string
+          user_id: string
+          valor?: number
+        }
+        Update: {
+          ano?: number
+          categoria_id?: string | null
+          created_at?: string
+          data?: string
+          descricao?: string
+          id?: string
+          mes?: number
+          status?: Database["public"]["Enums"]["status_lancamento"]
+          tipo?: Database["public"]["Enums"]["tipo_movimento"]
+          updated_at?: string
+          user_id?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lancamentos_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      parcelas: {
+        Row: {
+          ano_inicio: number
+          categoria_id: string | null
+          created_at: string
+          data_primeira_parcela: string
+          descricao: string
+          id: string
+          mes_inicio: number
+          num_parcelas: number
+          status: Database["public"]["Enums"]["status_parcela"]
+          updated_at: string
+          user_id: string
+          valor_parcela: number
+        }
+        Insert: {
+          ano_inicio: number
+          categoria_id?: string | null
+          created_at?: string
+          data_primeira_parcela?: string
+          descricao: string
+          id?: string
+          mes_inicio: number
+          num_parcelas?: number
+          status?: Database["public"]["Enums"]["status_parcela"]
+          updated_at?: string
+          user_id: string
+          valor_parcela?: number
+        }
+        Update: {
+          ano_inicio?: number
+          categoria_id?: string | null
+          created_at?: string
+          data_primeira_parcela?: string
+          descricao?: string
+          id?: string
+          mes_inicio?: number
+          num_parcelas?: number
+          status?: Database["public"]["Enums"]["status_parcela"]
+          updated_at?: string
+          user_id?: string
+          valor_parcela?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parcelas_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      is_admin: { Args: { _uid: string }; Returns: boolean }
-      perfil_atual: { Args: never; Returns: string }
-      pode_editar_prontuario: { Args: { _uid: string }; Returns: boolean }
+      [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      status_lancamento: "pago" | "pendente"
+      status_parcela: "ativo" | "quitado"
+      tipo_movimento: "receita" | "despesa"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -152,6 +331,10 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      status_lancamento: ["pago", "pendente"],
+      status_parcela: ["ativo", "quitado"],
+      tipo_movimento: ["receita", "despesa"],
+    },
   },
 } as const
