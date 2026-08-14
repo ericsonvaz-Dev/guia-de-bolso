@@ -31,10 +31,3 @@ export function StatusBadge({ status, className, ...props }: StatusBadgeProps) {
     </span>
   );
 }
-
-export interface ValorProps extends ComponentProps<"span"> {
-  /** Valor em reais já convertido para número. */
-  valor: number;
-  /** Quando informado, força a cor por tipo de movimento. */
-  tipo?: "receita" | "despesa";
-}
