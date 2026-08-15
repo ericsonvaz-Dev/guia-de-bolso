@@ -65,10 +65,10 @@ type Categoria = Tables<"categorias">;
 const formSchema = z.object({
   descricao: z.string().min(1, "Descrição é obrigatória"),
   categoria_id: z.string().min(1, "Categoria é obrigatória"),
-  valor_parcela: z.coerce.number().min(0.01, "Valor deve ser maior que zero"),
-  num_parcelas: z.coerce.number().min(1, "Mínimo 1 parcela"),
-  mes_inicio: z.coerce.number().min(1).max(12),
-  ano_inicio: z.coerce.number().min(2000).max(2100),
+  valor_parcela: z.number().min(0.01, "Valor deve ser maior que zero"),
+  num_parcelas: z.number().min(1, "Mínimo 1 parcela"),
+  mes_inicio: z.number().min(1).max(12),
+  ano_inicio: z.number().min(2000).max(2100),
   data_primeira_parcela: z.string().min(1, "Data é obrigatória"),
   status: z.enum(["ativo", "quitado"]),
 });
