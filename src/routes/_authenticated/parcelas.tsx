@@ -133,8 +133,8 @@ function PaginaParcelas() {
       num_parcelas: 1,
       mes_inicio: new Date().getMonth() + 1,
       ano_inicio: new Date().getFullYear(),
-      data_primeira_parcela: new Date().toISOString().split("T")[0],
-      status: "ativo",
+      data_primeira_parcela: new Date().toISOString().split("T")[0] as string,
+      status: "ativo" as const,
     },
   });
 
