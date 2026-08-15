@@ -158,7 +158,7 @@ function PaginaParcelas() {
   }, [watchValues.num_parcelas, watchValues.mes_inicio, watchValues.ano_inicio]);
 
   const upsertMutation = useMutation({
-    mutationFn: async (values: FormValues) => {
+    mutationFn: async (values: any) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
 
