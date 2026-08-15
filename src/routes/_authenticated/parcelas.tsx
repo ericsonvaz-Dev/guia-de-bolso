@@ -251,7 +251,7 @@ function PaginaParcelas() {
             </DialogHeader>
 
             <Form {...form}>
-              <form onSubmit={form.handleSubmit((v) => upsertMutation.mutate(v))} className="space-y-4">
+              <form onSubmit={form.handleSubmit((v) => upsertMutation.mutate(v as FormValues))} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
