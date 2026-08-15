@@ -120,7 +120,7 @@ function PaginaAuth() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-muted/40 px-4 py-10">
+    <div className="flex min-h-screen items-center justify-center bg-muted/40 px-4 py-10">
       <div className="w-full max-w-md">
         <div className="mb-6 flex flex-col items-center gap-3 text-center">
           <span className="flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
@@ -241,6 +241,6 @@ function PaginaAuth() {
           </Card>
         )}
       </div>
-    </main>
+    </div>
   );
 }
