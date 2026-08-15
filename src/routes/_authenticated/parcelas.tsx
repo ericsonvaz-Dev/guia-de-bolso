@@ -315,8 +315,8 @@ function PaginaParcelas() {
                             type="number" 
                             step="0.01"
                             placeholder="0,00" 
-                            {...field}
-                            onChange={(e) => field.onChange(Number(e.target.value))}
+                            value={field.value}
+                            onChange={(e) => field.onChange(paraNumero(e.target.value))}
                           />
                         </FormControl>
                         <FormMessage />
@@ -333,8 +333,8 @@ function PaginaParcelas() {
                         <FormControl>
                           <Input 
                             type="number" 
-                            {...field}
-                            onChange={(e) => field.onChange(Number(e.target.value))}
+                            value={field.value}
+                            onChange={(e) => field.onChange(paraNumero(e.target.value))}
                           />
                         </FormControl>
                         <FormMessage />
@@ -379,8 +379,8 @@ function PaginaParcelas() {
                         <FormControl>
                           <Input 
                             type="number" 
-                            {...field}
-                            onChange={(e) => field.onChange(Number(e.target.value))}
+                            value={field.value}
+                            onChange={(e) => field.onChange(paraNumero(e.target.value))}
                           />
                         </FormControl>
                         <FormMessage />
