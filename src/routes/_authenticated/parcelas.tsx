@@ -132,7 +132,7 @@ function PaginaParcelas() {
     defaultValues: {
       descricao: "",
       categoria_id: "",
-      valor_parcela: 0 as any,
+      valor_parcela: 0,
       num_parcelas: 1,
       mes_inicio: new Date().getMonth() + 1,
       ano_inicio: new Date().getFullYear(),
