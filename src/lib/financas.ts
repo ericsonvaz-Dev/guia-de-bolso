@@ -1,9 +1,11 @@
-import { Tables } from "@/integrations/supabase/types";
+import { Tables, Enums } from "@/integrations/supabase/types";
 
 export type Lancamento = Tables<"lancamentos">;
 export type ContaFixa = Tables<"contas_fixas">;
 export type Parcela = Tables<"parcelas">;
 export type Categoria = Tables<"categorias">;
+export type TipoMovimento = Enums<"tipo_movimento">;
+export type StatusLancamento = Enums<"status_lancamento">;
 
 export interface ResumoFinanceiro {
   totalReceitas: number;
@@ -16,6 +18,7 @@ export interface ResumoFinanceiro {
   pagas: number;
   pendentes: number;
   gastosPorCategoria: Record<string, { nome: string; total: number; cor: string }>;
+  lancamentosCompletos: (Lancamento & { virtual?: boolean; origin?: "fixa" | "parcela" })[];
 }
 
 /**
@@ -53,6 +56,9 @@ export function processarResumoFinanceiro(
   let pagas = 0;
   let pendentes = 0;
   const gastosPorCategoria: Record<string, { nome: string; total: number; cor: string }> = {};
+  
+  // Lista final contendo lançamentos reais + fixos virtuais
+  const lancamentosCompletos: (Lancamento & { virtual?: boolean; origin?: "fixa" | "parcela" })[] = [...lancamentos];
 
   // Inicializar categorias para o mapa
   categorias.forEach((cat) => {
@@ -80,6 +86,7 @@ export function processarResumoFinanceiro(
   });
 
   // 2. Processar Contas Fixas Automáticas
+  // Consideramos uma conta fixa como "já lançada" se houver um lançamento manual com a mesma descrição
   const descricoesLancadas = new Set(lancamentos.map(l => l.descricao.toLowerCase()));
 
   contasFixas.forEach((cf) => {
@@ -92,6 +99,24 @@ export function processarResumoFinanceiro(
         const cat = gastosPorCategoria[cf.categoria_id];
         if (cat) cat.total += valor;
       }
+
+      // Adicionar como lançamento virtual para exibição na tela Mês
+      lancamentosCompletos.push({
+        id: `fixa-${cf.id}`,
+        user_id: cf.user_id,
+        descricao: cf.descricao,
+        valor: cf.valor,
+        tipo: "despesa",
+        status: "pendente",
+        categoria_id: cf.categoria_id,
+        data: `${ano}-${String(mes).padStart(2, '0')}-${String(cf.dia).padStart(2, '0')}`,
+        mes,
+        ano,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        virtual: true,
+        origin: "fixa"
+      });
     }
   });
 
@@ -106,6 +131,9 @@ export function processarResumoFinanceiro(
         const cat = gastosPorCategoria[p.categoria_id];
         if (cat) cat.total += valor;
       }
+      
+      // As parcelas são exibidas como um total na tela, mas poderíamos opcionalmente 
+      // adicioná-las aqui se quiséssemos detalhamento. O requisito pede "Linha Parcelas do Mês".
     }
   });
 
@@ -124,5 +152,6 @@ export function processarResumoFinanceiro(
     pagas,
     pendentes,
     gastosPorCategoria,
+    lancamentosCompletos,
   };
 }
