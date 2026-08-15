@@ -406,7 +406,7 @@ function PaginaMes() {
                         ))}
                       </Pie>
                       <RechartsTooltip 
-                        formatter={(value: number) => formatarBRL(value)}
+                        formatter={(value: any) => formatarBRL(value)}
                       />
                       <Legend 
                         layout="horizontal" 
