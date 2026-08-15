@@ -65,13 +65,13 @@ type Categoria = Tables<"categorias">;
 const formSchema = z.object({
   descricao: z.string().min(1, "Descrição é obrigatória"),
   categoria_id: z.string().min(1, "Categoria é obrigatória"),
-  valor_parcela: z.any().transform((val) => {
+  valor_parcela: z.preprocess((val) => {
     if (typeof val === "string") return paraNumero(val.replace(/[^\d,.-]/g, "").replace(",", "."));
-    return paraNumero(val);
-  }),
-  num_parcelas: z.coerce.number().min(1, "Mínimo 1 parcela"),
-  mes_inicio: z.coerce.number().min(1).max(12),
-  ano_inicio: z.coerce.number().min(2000).max(2100),
+    return val;
+  }, z.number()),
+  num_parcelas: z.preprocess((val) => Number(val), z.number().min(1, "Mínimo 1 parcela")),
+  mes_inicio: z.preprocess((val) => Number(val), z.number().min(1).max(12)),
+  ano_inicio: z.preprocess((val) => Number(val), z.number().min(2000).max(2100)),
   data_primeira_parcela: z.string().min(1, "Data é obrigatória"),
   status: z.enum(["ativo", "quitado"]),
 });
