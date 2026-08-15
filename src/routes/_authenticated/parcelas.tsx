@@ -65,10 +65,10 @@ type Categoria = Tables<"categorias">;
 const formSchema = z.object({
   descricao: z.string().min(1, "Descrição é obrigatória"),
   categoria_id: z.string().min(1, "Categoria é obrigatória"),
-  valor_parcela: z.number().min(0.01, "Valor deve ser maior que zero"),
-  num_parcelas: z.number().min(1, "Mínimo 1 parcela"),
-  mes_inicio: z.number().min(1).max(12),
-  ano_inicio: z.number().min(2000).max(2100),
+  valor_parcela: z.coerce.number().min(0.01, "Valor deve ser maior que zero"),
+  num_parcelas: z.coerce.number().min(1, "Mínimo 1 parcela"),
+  mes_inicio: z.coerce.number().min(1).max(12),
+  ano_inicio: z.coerce.number().min(2000).max(2100),
   data_primeira_parcela: z.string().min(1, "Data é obrigatória"),
   status: z.enum(["ativo", "quitado"]),
 });
@@ -144,7 +144,7 @@ function PaginaParcelas() {
     if (!watchValues.num_parcelas || !watchValues.mes_inicio || !watchValues.ano_inicio) return [];
     
     const items = [];
-    const totalMeses = watchValues.num_parcelas;
+    const totalMeses = Number(watchValues.num_parcelas);
     const mesInicio = Number(watchValues.mes_inicio);
     const anoInicio = Number(watchValues.ano_inicio);
 
@@ -158,7 +158,7 @@ function PaginaParcelas() {
   }, [watchValues.num_parcelas, watchValues.mes_inicio, watchValues.ano_inicio]);
 
   const upsertMutation = useMutation({
-    mutationFn: async (values: any) => {
+    mutationFn: async (values: FormValues) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
 
@@ -211,7 +211,7 @@ function PaginaParcelas() {
     form.reset({
       descricao: parcela.descricao,
       categoria_id: parcela.categoria_id,
-      valor_parcela: parcela.valor_parcela.toString(),
+      valor_parcela: parcela.valor_parcela,
       num_parcelas: parcela.num_parcelas,
       mes_inicio: parcela.mes_inicio,
       ano_inicio: parcela.ano_inicio,
