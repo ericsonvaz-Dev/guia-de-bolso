@@ -66,8 +66,9 @@ export function processarResumoFinanceiro(
       totalReceitas += valor;
     } else {
       despesasManuais += valor;
-      if (l.categoria_id && gastosPorCategoria[l.categoria_id]) {
-        gastosPorCategoria[l.categoria_id].total += valor;
+      if (l.categoria_id) {
+        const cat = gastosPorCategoria[l.categoria_id];
+        if (cat) cat.total += valor;
       }
     }
 
@@ -79,7 +80,6 @@ export function processarResumoFinanceiro(
   });
 
   // 2. Processar Contas Fixas Automáticas
-  // Consideramos apenas as que não foram lançadas manualmente no mês (por descrição exata)
   const descricoesLancadas = new Set(lancamentos.map(l => l.descricao.toLowerCase()));
 
   contasFixas.forEach((cf) => {
@@ -88,8 +88,9 @@ export function processarResumoFinanceiro(
       totalContasFixas += valor;
       pendentes += valor;
 
-      if (cf.categoria_id && gastosPorCategoria[cf.categoria_id]) {
-        gastosPorCategoria[cf.categoria_id].total += valor;
+      if (cf.categoria_id) {
+        const cat = gastosPorCategoria[cf.categoria_id];
+        if (cat) cat.total += valor;
       }
     }
   });
@@ -99,10 +100,11 @@ export function processarResumoFinanceiro(
     if (calcularParcelaIncidente(p, mes, ano)) {
       const valor = Number(p.valor_parcela);
       totalParcelas += valor;
-      pendentes += valor; // Parcelas virtuais começam como pendentes
+      pendentes += valor;
 
-      if (p.categoria_id && gastosPorCategoria[p.categoria_id]) {
-        gastosPorCategoria[p.categoria_id].total += valor;
+      if (p.categoria_id) {
+        const cat = gastosPorCategoria[p.categoria_id];
+        if (cat) cat.total += valor;
       }
     }
   });
