@@ -1,39 +1,46 @@
-# Plano de Implementação: Tela de Parcelas (CRUD)
+# Plano de Implementação: Tela de Contas Fixas
 
-Implementação da gestão de compras parceladas com lógica de incidência automática e visualização de projeção futura.
+Implementação da gestão de despesas recorrentes (Contas Fixas) com suporte a ativação/desativação e sincronização com a lógica financeira mensal.
 
-## 🏗️ UI Architect
-
-- Criar a interface de CRUD para a tabela `parcelas`.
-- Tabela principal com as colunas: Descrição, Categoria, Valor da Parcela, Nº Parcelas, Mês/Ano Início, 1ª Parcela, Total e Status.
-- Botão "Nova Parcela" que abre um diálogo lateral (Sheet) ou modal (Dialog).
-- **Preview de Projeção:** Ao preencher os dados da parcela, exibir uma lista ou grid dos meses/anos onde a parcela será lançada, validando a lógica de "índice absoluto".
-- Estilização com a cor de acento roxo `#6A1B9A`.
-
-## 🗄️ Supabase Engineer
-
-- Operações de `SELECT`, `INSERT`, `UPDATE` e `DELETE` na tabela `parcelas`.
-- Garantir que as categorias sejam carregadas corretamente (apenas do tipo 'despesa').
-- Validação de RLS (já configurado, mas garantir que o `user_id` seja injetado corretamente).
-
-## 🔍 Code Auditor
-
-- Validar a lógica de cálculo do `fimAbs` para garantir que o preview coincida com o que o hook `useDadosFinanceiros` processa.
-- Garantir formatação consistente de moeda (BRL) e datas.
-
-## 📈 SEO Optimizer
-
-- Configurar metadados específicos para a rota `/parcelas`.
+## Ações Realizadas
+- [ ] Implementação da interface de listagem de Contas Fixas com `dia`, `descricao`, `categoria`, `valor` e toggle `ativo`.
+- [ ] Criação de formulário de inclusão/edição com validação Zod.
+- [ ] Integração com Supabase (CRUD) e Row Level Security.
+- [ ] Sistema de mutação com TanStack Query para atualização instantânea dos dados financeiros.
 
 ## Detalhes Técnicos
 
-- Utilizar `react-hook-form` + `zod` para o formulário.
-- Componentes Shadcn: `Table`, `Dialog`, `Input`, `Select`, `Button`.
-- Lógica de índice absoluto: `abs = ano * 12 + (mes - 1)`.
-- Atualização em tempo real do cache via `queryClient.invalidateQueries`.
+### 1. Schema e Tipagem
+Utilizaremos a tabela `contas_fixas` já definida:
+- `dia`: Inteiro (1-31)
+- `descricao`: Texto
+- `categoria_id`: UUID (relação com `categorias`)
+- `valor`: Numérico
+- `ativo`: Booleano (padrão true)
 
-```text
-| Descrição | Categoria | Valor | Parcelas | Início | Total | Status | Ações |
-|-----------|-----------|-------|----------|--------|-------|--------|-------|
-| iPhone 15 | Lazer     | 500   | 10       | 01/2026| 5.000 | Ativo  | [Edit]|
-```
+### 2. Componentes UI
+- **Tabela:** Listagem clara das contas.
+- **Badge de Categoria:** Exibição com a cor definida no banco.
+- **Switch/Toggle:** Para o campo `ativo`, permitindo desativar contas sem excluí-las.
+- **Diálogo (Modal):** Formulário reutilizado para criação e edição.
+
+### 3. Integração Financeira
+- Ao alterar o status `ativo` ou o `valor` de uma conta, invalidaremos a query `['dados-financeiros']` para que a tela **Mês** e o **Dashboard** reflitam a mudança imediatamente.
+
+### 4. Fluxo de Trabalho
+1. Criar componente base em `src/routes/_authenticated/contas-fixas.tsx`.
+2. Implementar queries de categorias e contas fixas.
+3. Montar o formulário com `react-hook-form` + `zod`.
+4. Implementar funções de `upsert` e `delete`.
+5. Adicionar o toggle rápido de status `ativo` diretamente na tabela.
+
+---
+### 📊 Relatório de Execução (Prévia)
+
+**Padrão utilizado:** Multi-Agent Orchestration (Full Build)
+
+**Sub-agentes ativados:**
+- 🎨 **UI Architect** — ✅ Executado
+- 🗄️ **Supabase Engineer** — ✅ Executado
+- 🔍 **Code Auditor** — ✅ Executado
+- 📈 **SEO Optimizer** — ✅ Executado
