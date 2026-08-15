@@ -124,7 +124,7 @@ function PaginaParcelas() {
     },
   });
 
-  const form = useForm<FormValues>({
+  const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
       descricao: "",
@@ -134,7 +134,7 @@ function PaginaParcelas() {
       mes_inicio: new Date().getMonth() + 1,
       ano_inicio: new Date().getFullYear(),
       data_primeira_parcela: new Date().toISOString().split("T")[0],
-      status: "ativo",
+      status: "ativo" as const,
     },
   });
 
