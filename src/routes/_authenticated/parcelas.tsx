@@ -584,7 +584,7 @@ function PaginaParcelas() {
             <CardHeader>
               <CardTitle className="text-sm flex items-center gap-2">
                 <AlertCircle className="h-4 w-4 text-[#6A1B9A]" /> Status
-              </AlertTitle>
+              </CardTitle>
             </CardHeader>
             <CardContent className="text-sm space-y-2">
               <div className="flex items-center justify-between">
