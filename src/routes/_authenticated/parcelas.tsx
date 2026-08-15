@@ -138,7 +138,6 @@ function PaginaParcelas() {
     },
   });
 
-  // Preview das parcelas
   const watchValues = form.watch();
   const previewParcelas = useMemo(() => {
     if (!watchValues.num_parcelas || !watchValues.mes_inicio || !watchValues.ano_inicio) return [];
