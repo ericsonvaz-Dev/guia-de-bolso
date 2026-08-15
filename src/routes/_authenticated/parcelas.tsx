@@ -65,7 +65,10 @@ type Categoria = Tables<"categorias">;
 const formSchema = z.object({
   descricao: z.string().min(1, "Descrição é obrigatória"),
   categoria_id: z.string().min(1, "Categoria é obrigatória"),
-  valor_parcela: z.union([z.number(), z.string()]).transform((val) => paraNumero(val)),
+  valor_parcela: z.preprocess((val) => {
+    if (typeof val === "string") return paraNumero(val.replace(/[^\d,.-]/g, "").replace(",", "."));
+    return val;
+  }, z.number().min(0.01, "Valor deve ser maior que zero")),
   num_parcelas: z.coerce.number().min(1, "Mínimo 1 parcela"),
   mes_inicio: z.coerce.number().min(1).max(12),
   ano_inicio: z.coerce.number().min(2000).max(2100),
@@ -73,7 +76,7 @@ const formSchema = z.object({
   status: z.enum(["ativo", "quitado"]),
 });
 
-type FormValues = z.output<typeof formSchema>;
+type FormValues = z.infer<typeof formSchema>;
 
 export const Route = createFileRoute("/_authenticated/parcelas")({
   head: () => ({
