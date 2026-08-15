@@ -163,7 +163,14 @@ function PaginaParcelas() {
       if (!user) throw new Error("Não autenticado");
 
       const payload = {
-        ...values,
+        descricao: values.descricao,
+        categoria_id: values.categoria_id,
+        valor_parcela: values.valor_parcela,
+        num_parcelas: values.num_parcelas,
+        mes_inicio: values.mes_inicio,
+        ano_inicio: values.ano_inicio,
+        data_primeira_parcela: values.data_primeira_parcela,
+        status: values.status,
         user_id: user.id,
       };
 
@@ -211,10 +218,10 @@ function PaginaParcelas() {
     form.reset({
       descricao: parcela.descricao,
       categoria_id: parcela.categoria_id,
-      valor_parcela: parcela.valor_parcela,
-      num_parcelas: parcela.num_parcelas,
-      mes_inicio: parcela.mes_inicio,
-      ano_inicio: parcela.ano_inicio,
+      valor_parcela: paraNumero(parcela.valor_parcela),
+      num_parcelas: paraNumero(parcela.num_parcelas),
+      mes_inicio: paraNumero(parcela.mes_inicio),
+      ano_inicio: paraNumero(parcela.ano_inicio),
       data_primeira_parcela: parcela.data_primeira_parcela,
       status: parcela.status as "ativo" | "quitado",
     });
@@ -510,7 +517,7 @@ function PaginaParcelas() {
                           <TableCell>{parcela.num_parcelas}x</TableCell>
                           <TableCell>{nomeDoMes(parcela.mes_inicio)}/{parcela.ano_inicio}</TableCell>
                           <TableCell className="font-bold text-[#6A1B9A]">
-                            {formatarBRL(parcela.valor_parcela * parcela.num_parcelas)}
+                            {formatarBRL(paraNumero(parcela.valor_parcela) * paraNumero(parcela.num_parcelas))}
                           </TableCell>
                           <TableCell>
                             <Badge variant={parcela.status === "ativo" ? "default" : "secondary"} className={cn(
@@ -577,7 +584,7 @@ function PaginaParcelas() {
             <CardHeader>
               <CardTitle className="text-sm flex items-center gap-2">
                 <AlertCircle className="h-4 w-4 text-[#6A1B9A]" /> Status
-              </CardTitle>
+              </AlertTitle>
             </CardHeader>
             <CardContent className="text-sm space-y-2">
               <div className="flex items-center justify-between">
@@ -592,7 +599,7 @@ function PaginaParcelas() {
                 <div className="flex flex-col">
                   <span className="text-xs text-muted-foreground">Comprometimento Total:</span>
                   <span className="text-lg font-bold text-[#6A1B9A]">
-                    {formatarBRL(parcelas?.filter(p => p.status === 'ativo').reduce((acc, p) => acc + (p.valor_parcela * p.num_parcelas), 0) || 0)}
+                    {formatarBRL(parcelas?.filter(p => p.status === 'ativo').reduce((acc, p) => acc + (paraNumero(p.valor_parcela) * paraNumero(p.num_parcelas)), 0) || 0)}
                   </span>
                 </div>
               </div>
