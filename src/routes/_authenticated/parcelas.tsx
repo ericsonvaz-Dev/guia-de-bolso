@@ -134,7 +134,7 @@ function PaginaParcelas() {
       mes_inicio: new Date().getMonth() + 1,
       ano_inicio: new Date().getFullYear(),
       data_primeira_parcela: new Date().toISOString().split("T")[0],
-      status: "ativo" as const,
+      status: "ativo",
     },
   });
 
@@ -222,7 +222,7 @@ function PaginaParcelas() {
       num_parcelas: paraNumero(parcela.num_parcelas),
       mes_inicio: paraNumero(parcela.mes_inicio),
       ano_inicio: paraNumero(parcela.ano_inicio),
-      data_primeira_parcela: parcela.data_primeira_parcela,
+      data_primeira_parcela: parcela.data_primeira_parcela || new Date().toISOString().split("T")[0],
       status: parcela.status as "ativo" | "quitado",
     });
     setIsDialogOpen(true);
