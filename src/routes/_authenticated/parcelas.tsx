@@ -11,7 +11,7 @@ import {
   AlertCircle
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useForm, Controller } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
@@ -65,10 +65,10 @@ type Categoria = Tables<"categorias">;
 const formSchema = z.object({
   descricao: z.string().min(1, "Descrição é obrigatória"),
   categoria_id: z.string().min(1, "Categoria é obrigatória"),
-  valor_parcela: z.number().min(0.01, "Valor deve ser maior que zero"),
-  num_parcelas: z.number().min(1, "Mínimo 1 parcela"),
-  mes_inicio: z.number().min(1).max(12),
-  ano_inicio: z.number().min(2000).max(2100),
+  valor_parcela: z.coerce.number().min(0.01, "Valor deve ser maior que zero"),
+  num_parcelas: z.coerce.number().min(1, "Mínimo 1 parcela"),
+  mes_inicio: z.coerce.number().min(1).max(12),
+  ano_inicio: z.coerce.number().min(2000).max(2100),
   data_primeira_parcela: z.string().min(1, "Data é obrigatória"),
   status: z.enum(["ativo", "quitado"]),
 });
@@ -134,7 +134,7 @@ function PaginaParcelas() {
       mes_inicio: new Date().getMonth() + 1,
       ano_inicio: new Date().getFullYear(),
       data_primeira_parcela: new Date().toISOString().split("T")[0],
-      status: "ativo" as "ativo" | "quitado",
+      status: "ativo",
     },
   });
 
@@ -186,7 +186,7 @@ function PaginaParcelas() {
       toast.success(editingParcela ? "Parcela atualizada!" : "Parcela criada!");
       handleCloseDialog();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error("Erro ao salvar parcela: " + error.message);
     },
   });
@@ -201,7 +201,7 @@ function PaginaParcelas() {
       queryClient.invalidateQueries({ queryKey: ["dados-financeiros"] });
       toast.success("Parcela excluída!");
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error("Erro ao excluir: " + error.message);
     },
   });
@@ -282,7 +282,7 @@ function PaginaParcelas() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Categoria</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value || ""}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Selecione" />
@@ -405,7 +405,7 @@ function PaginaParcelas() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Status</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value || "ativo"}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Selecione" />
