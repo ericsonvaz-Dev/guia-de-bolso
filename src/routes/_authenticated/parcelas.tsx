@@ -251,7 +251,7 @@ function PaginaParcelas() {
             </DialogHeader>
 
             <Form {...form}>
-              <form onSubmit={form.handleSubmit((v) => upsertMutation.mutate(v as FormValues))} className="space-y-4">
+              <form onSubmit={form.handleSubmit((v) => upsertMutation.mutate(v))} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -302,7 +302,15 @@ function PaginaParcelas() {
                       <FormItem>
                         <FormLabel>Valor da Parcela (R$)</FormLabel>
                         <FormControl>
-                          <Input type="text" placeholder="0,00" {...field} />
+                          <Input 
+                            type="text" 
+                            placeholder="0,00" 
+                            value={field.value}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(/[^\d,.-]/g, "").replace(",", ".");
+                              field.onChange(paraNumero(val));
+                            }}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -316,7 +324,11 @@ function PaginaParcelas() {
                       <FormItem>
                         <FormLabel>Nº de Parcelas</FormLabel>
                         <FormControl>
-                          <Input type="number" {...field} />
+                          <Input 
+                            type="number" 
+                            value={field.value}
+                            onChange={(e) => field.onChange(Number(e.target.value))}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -330,7 +342,7 @@ function PaginaParcelas() {
                       <FormItem>
                         <FormLabel>Mês de Início</FormLabel>
                         <Select 
-                          onValueChange={(v) => field.onChange(parseInt(v))} 
+                          onValueChange={(v) => field.onChange(Number(v))} 
                           value={field.value?.toString()}
                         >
                           <FormControl>
@@ -358,7 +370,11 @@ function PaginaParcelas() {
                       <FormItem>
                         <FormLabel>Ano de Início</FormLabel>
                         <FormControl>
-                          <Input type="number" {...field} />
+                          <Input 
+                            type="number" 
+                            value={field.value}
+                            onChange={(e) => field.onChange(Number(e.target.value))}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
