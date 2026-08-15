@@ -224,7 +224,16 @@ function PaginaParcelas() {
   const handleCloseDialog = () => {
     setIsDialogOpen(false);
     setEditingParcela(null);
-    form.reset();
+    form.reset({
+      descricao: "",
+      categoria_id: "",
+      valor_parcela: 0,
+      num_parcelas: 1,
+      mes_inicio: new Date().getMonth() + 1,
+      ano_inicio: new Date().getFullYear(),
+      data_primeira_parcela: new Date().toISOString().split("T")[0],
+      status: "ativo",
+    });
   };
 
   return (
@@ -251,7 +260,7 @@ function PaginaParcelas() {
             </DialogHeader>
 
             <Form {...form}>
-              <form onSubmit={form.handleSubmit((v) => upsertMutation.mutate(v as FormValues))} className="space-y-4">
+              <form onSubmit={form.handleSubmit((v) => upsertMutation.mutate(v))} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -273,7 +282,7 @@ function PaginaParcelas() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Categoria</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Selecione" />
@@ -303,13 +312,10 @@ function PaginaParcelas() {
                         <FormLabel>Valor da Parcela (R$)</FormLabel>
                         <FormControl>
                           <Input 
-                            type="text" 
+                            type="number" 
+                            step="0.01"
                             placeholder="0,00" 
-                            value={field.value}
-                            onChange={(e) => {
-                              const val = e.target.value.replace(/[^\d,.-]/g, "").replace(",", ".");
-                              field.onChange(paraNumero(val));
-                            }}
+                            {...field}
                           />
                         </FormControl>
                         <FormMessage />
@@ -326,8 +332,7 @@ function PaginaParcelas() {
                         <FormControl>
                           <Input 
                             type="number" 
-                            value={field.value}
-                            onChange={(e) => field.onChange(Number(e.target.value))}
+                            {...field}
                           />
                         </FormControl>
                         <FormMessage />
@@ -372,8 +377,7 @@ function PaginaParcelas() {
                         <FormControl>
                           <Input 
                             type="number" 
-                            value={field.value}
-                            onChange={(e) => field.onChange(Number(e.target.value))}
+                            {...field}
                           />
                         </FormControl>
                         <FormMessage />
@@ -401,7 +405,7 @@ function PaginaParcelas() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Status</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Selecione" />
@@ -432,7 +436,7 @@ function PaginaParcelas() {
                       ))}
                     </div>
                     <p className="text-[10px] text-muted-foreground mt-2 italic">
-                      Total: {formatarBRL(paraNumero(watchValues.valor_parcela) * (Number(watchValues.num_parcelas) || 0))}
+                      Total: {formatarBRL(Number(watchValues.valor_parcela) * (Number(watchValues.num_parcelas) || 0))}
                     </p>
                   </div>
                 )}
@@ -483,63 +487,47 @@ function PaginaParcelas() {
                     {parcelas?.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                          Nenhuma parcela cadastrada.
+                          Nenhuma compra parcelada cadastrada.
                         </TableCell>
                       </TableRow>
                     ) : (
-                      parcelas?.map((p: any) => (
-                        <TableRow key={p.id}>
-                          <TableCell className="font-medium">{p.descricao}</TableCell>
+                      parcelas?.map((parcela) => (
+                        <TableRow key={parcela.id}>
+                          <TableCell className="font-medium">{parcela.descricao}</TableCell>
                           <TableCell>
-                            <Badge variant="outline" className="flex w-fit items-center gap-1 font-normal">
+                            <div className="flex items-center gap-2">
                               <div 
-                                className="h-2 w-2 rounded-full" 
-                                style={{ backgroundColor: p.categorias?.cor }} 
+                                className="w-2 h-2 rounded-full" 
+                                style={{ backgroundColor: (parcela.categorias as any)?.cor }} 
                               />
-                              {p.categorias?.nome}
-                            </Badge>
+                              {(parcela.categorias as any)?.nome}
+                            </div>
                           </TableCell>
-                          <TableCell className="text-red-700 font-medium">
-                            {formatarBRL(p.valor_parcela)}
-                          </TableCell>
-                          <TableCell>{p.num_parcelas}x</TableCell>
-                          <TableCell>
-                            <span className="text-xs uppercase font-semibold">
-                              {nomeDoMes(p.mes_inicio).substring(0, 3)}/{p.ano_inicio}
-                            </span>
-                          </TableCell>
-                          <TableCell className="font-semibold">
-                            {formatarBRL(p.valor_parcela * p.num_parcelas)}
+                          <TableCell>{formatarBRL(parcela.valor_parcela)}</TableCell>
+                          <TableCell>{parcela.num_parcelas}x</TableCell>
+                          <TableCell>{nomeDoMes(parcela.mes_inicio)}/{parcela.ano_inicio}</TableCell>
+                          <TableCell className="font-bold text-[#6A1B9A]">
+                            {formatarBRL(parcela.valor_parcela * parcela.num_parcelas)}
                           </TableCell>
                           <TableCell>
-                            <Badge 
-                              className={cn(
-                                "font-medium",
-                                p.status === "ativo" 
-                                  ? "bg-purple-100 text-[#6A1B9A] hover:bg-purple-100" 
-                                  : "bg-green-100 text-green-800 hover:bg-green-100"
-                              )}
-                            >
-                              {p.status === "ativo" ? "Ativo" : "Quitado"}
+                            <Badge variant={parcela.status === "ativo" ? "default" : "secondary"} className={cn(
+                              parcela.status === "ativo" ? "bg-[#6A1B9A] text-white" : ""
+                            )}>
+                              {parcela.status === "ativo" ? "Ativa" : "Quitada"}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-2">
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-8 w-8 text-muted-foreground"
-                                onClick={() => handleEdit(p)}
-                              >
+                              <Button variant="ghost" size="icon" onClick={() => handleEdit(parcela)}>
                                 <Pencil className="h-4 w-4" />
                               </Button>
                               <Button 
                                 variant="ghost" 
                                 size="icon" 
-                                className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                className="text-red-500 hover:text-red-700 hover:bg-red-50"
                                 onClick={() => {
                                   if (confirm("Tem certeza que deseja excluir esta parcela?")) {
-                                    deleteMutation.mutate(p.id);
+                                    deleteMutation.mutate(parcela.id);
                                   }
                                 }}
                               >
@@ -558,39 +546,53 @@ function PaginaParcelas() {
         </Card>
 
         <div className="space-y-4">
-          <Card className="border-l-4 border-l-[#6A1B9A]">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <CreditCard className="h-4 w-4 text-[#6A1B9A]" /> Resumo de Parcelas
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Info className="h-4 w-4 text-[#6A1B9A]" /> Dica
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-muted-foreground">Total Ativas</span>
-                  <span className="font-bold">
-                    {parcelas?.filter(p => p.status === "ativo").length || 0}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-muted-foreground">Comprometimento Mensal</span>
-                  <span className="font-bold text-red-700">
-                    {formatarBRL(parcelas?.filter(p => p.status === "ativo").reduce((acc, p) => acc + Number(p.valor_parcela), 0) || 0)}
-                  </span>
-                </div>
+            <CardContent className="text-sm text-muted-foreground space-y-2">
+              <p>
+                As parcelas cadastradas aqui como <strong>Ativas</strong> são incluídas automaticamente nas despesas dos meses correspondentes.
+              </p>
+              <p>
+                A regra de cálculo utiliza o <strong>índice absoluto</strong> do mês, garantindo que parcelas que atravessam viradas de ano sejam exibidas corretamente.
+              </p>
+              <div className="mt-4 p-3 bg-[#6A1B9A]/5 border border-[#6A1B9A]/20 rounded-md">
+                <p className="text-[#6A1B9A] font-medium flex items-center gap-1 text-xs">
+                  <CheckCircle2 className="h-3 w-3" /> Automação Ativa
+                </p>
+                <p className="text-[11px] mt-1">
+                  Você não precisa adicionar essas despesas manualmente todos os meses.
+                </p>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-[#FFF3CD]/30 border-[#F9A825]/20">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs font-bold uppercase tracking-wider text-[#F9A825] flex items-center gap-2">
-                <AlertCircle className="h-3 w-3" /> Info Importante
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 text-[#6A1B9A]" /> Status
               </CardTitle>
             </CardHeader>
-            <CardContent className="text-xs text-muted-foreground leading-relaxed">
-              Parcelas com status <strong>Ativo</strong> são somadas automaticamente nas despesas dos meses correspondentes. 
-              A data base para ordenação é o dia da 1ª parcela.
+            <CardContent className="text-sm space-y-2">
+              <div className="flex items-center justify-between">
+                <span>Ativas:</span>
+                <span className="font-bold">{parcelas?.filter(p => p.status === 'ativo').length || 0}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Quitadas:</span>
+                <span className="font-bold">{parcelas?.filter(p => p.status === 'quitado').length || 0}</span>
+              </div>
+              <div className="pt-2 border-t mt-2">
+                <div className="flex flex-col">
+                  <span className="text-xs text-muted-foreground">Comprometimento Total:</span>
+                  <span className="text-lg font-bold text-[#6A1B9A]">
+                    {formatarBRL(parcelas?.filter(p => p.status === 'ativo').reduce((acc, p) => acc + (p.valor_parcela * p.num_parcelas), 0) || 0)}
+                  </span>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
