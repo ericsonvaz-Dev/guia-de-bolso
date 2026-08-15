@@ -69,7 +69,7 @@ const formSchema = z.object({
   num_parcelas: z.number().min(1, "Mínimo 1 parcela"),
   mes_inicio: z.number().min(1).max(12),
   ano_inicio: z.number().min(2000).max(2100),
-  data_primeira_parcela: z.string().nullable().transform(val => val || new Date().toISOString().split("T")[0]),
+  data_primeira_parcela: z.string().min(1, "Data é obrigatória"),
   status: z.enum(["ativo", "quitado"]),
 });
 
