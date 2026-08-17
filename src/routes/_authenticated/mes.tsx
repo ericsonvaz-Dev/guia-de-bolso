@@ -41,7 +41,7 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
+
 
 export const Route = createFileRoute("/_authenticated/mes")({
   head: () => ({
