@@ -124,7 +124,9 @@ function PaginaContasFixas() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["categorias-despesas"] });
-      toast.success("Categorias padrão adicionadas!");
+      queryClient.invalidateQueries({ queryKey: ["contas-fixas"] });
+      queryClient.invalidateQueries({ queryKey: ["dados-financeiros"] });
+      toast.success("Categorias e contas padrão adicionadas!");
     },
     onError: (error: any) => {
       toast.error("Erro ao adicionar categorias: " + error.message);
