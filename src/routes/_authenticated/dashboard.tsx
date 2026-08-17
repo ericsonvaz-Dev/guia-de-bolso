@@ -234,7 +234,7 @@ function PaginaDashboard() {
               <ResponsiveContainer width="100%" height="100%">
                 <RechartsPieChart>
                   <Pie
-                    data={stats?.pieData}
+                    data={stats?.pieData || []}
                     cx="50%"
                     cy="50%"
                     innerRadius={60}
@@ -243,11 +243,11 @@ function PaginaDashboard() {
                     dataKey="total"
                     nameKey="nome"
                   >
-                    {stats?.pieData.map((entry, index) => (
+                    {(stats?.pieData || []).map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.cor} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value: number) => formatarBRL(value)} />
+                  <Tooltip formatter={(value: any) => formatarBRL(Number(value))} />
                   <Legend />
                 </RechartsPieChart>
               </ResponsiveContainer>
