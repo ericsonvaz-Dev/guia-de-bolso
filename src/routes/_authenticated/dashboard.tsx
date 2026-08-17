@@ -44,22 +44,26 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 });
 
 function PaginaDashboard() {
-  const anoAtual = new Date().getFullYear();
+  const [ano, setAno] = useState(new Date().getFullYear());
+  const anosDisponiveis = useMemo(() => {
+    const atual = new Date().getFullYear();
+    return Array.from({ length: 5 }, (_, i) => atual - 2 + i);
+  }, []);
 
   const { data: dadosAnuais, isLoading } = useQuery({
-    queryKey: ["dados-anuais", anoAtual],
+    queryKey: ["dados-anuais", ano],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
 
-      // Buscar tudo do ano atual
+      // Buscar tudo do ano selecionado
       const [
         { data: lancamentos },
         { data: contasFixas },
         { data: parcelas },
         { data: categorias }
       ] = await Promise.all([
-        supabase.from("lancamentos").select("*").eq("ano", anoAtual),
+        supabase.from("lancamentos").select("*").eq("ano", ano),
         supabase.from("contas_fixas").select("*").eq("ativo", true),
         supabase.from("parcelas").select("*").eq("status", "ativo"),
         supabase.from("categorias").select("*")
@@ -78,7 +82,7 @@ function PaginaDashboard() {
             parcelas || [],
             categorias || [],
             mes,
-            anoAtual
+            ano
           )
         };
       });
@@ -96,6 +100,12 @@ function PaginaDashboard() {
     const totalReceitas = dadosAnuais.resumoPorMes.reduce((acc, m) => acc + m.totalReceitas, 0);
     const totalDespesas = dadosAnuais.resumoPorMes.reduce((acc, m) => acc + m.totalDespesas, 0);
     const saldo = totalReceitas - totalDespesas;
+    
+    // Média de gasto da renda (apenas meses com receita > 0)
+    const mesesComReceita = dadosAnuais.resumoPorMes.filter(m => m.totalReceitas > 0);
+    const percentMedioGasto = mesesComReceita.length > 0
+      ? mesesComReceita.reduce((acc, m) => acc + m.percentGasto, 0) / mesesComReceita.length
+      : 0;
     
     // Gastos por categoria (consolidado ano)
     const gastosCategoria: Record<string, { nome: string; total: number; cor: string }> = {};
@@ -117,6 +127,7 @@ function PaginaDashboard() {
       totalReceitas,
       totalDespesas,
       saldo,
+      percentMedioGasto,
       pieData
     };
   }, [dadosAnuais]);
@@ -124,7 +135,8 @@ function PaginaDashboard() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Skeleton className="h-32 w-full" />
           <Skeleton className="h-32 w-full" />
           <Skeleton className="h-32 w-full" />
           <Skeleton className="h-32 w-full" />
@@ -136,19 +148,33 @@ function PaginaDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard {anoAtual}</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard {ano}</h1>
           <p className="text-muted-foreground">
             Visão geral consolidada das suas finanças este ano.
           </p>
         </div>
+        
+        <div className="flex items-center gap-2">
+          <label htmlFor="seletor-ano" className="text-sm font-medium">Ano:</label>
+          <select 
+            id="seletor-ano"
+            value={ano}
+            onChange={(e) => setAno(Number(e.target.value))}
+            className="h-9 w-28 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          >
+            {anosDisponiveis.map(a => (
+              <option key={a} value={a}>{a}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Receitas</CardTitle>
+            <CardTitle className="text-sm font-medium">Receita Total</CardTitle>
             <TrendingUp className="h-4 w-4 text-[#2E7D32]" />
           </CardHeader>
           <CardContent>
@@ -158,7 +184,7 @@ function PaginaDashboard() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Despesas</CardTitle>
+            <CardTitle className="text-sm font-medium">Despesa Total</CardTitle>
             <TrendingDown className="h-4 w-4 text-[#C62828]" />
           </CardHeader>
           <CardContent>
@@ -168,14 +194,26 @@ function PaginaDashboard() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Saldo Anual</CardTitle>
+            <CardTitle className="text-sm font-medium">Saldo Total</CardTitle>
             <DollarSign className="h-4 w-4 text-[#1F4E78]" />
           </CardHeader>
           <CardContent>
             <div className={`text-2xl font-bold ${(stats?.saldo || 0) >= 0 ? 'text-[#1F4E78]' : 'text-[#C62828]'}`}>
               {formatarBRL(stats?.saldo || 0)}
             </div>
-            <p className="text-xs text-muted-foreground">Resultado líquido</p>
+            <p className="text-xs text-muted-foreground">Resultado líquido anual</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">% Médio Gasto</CardTitle>
+            <PieChart className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-primary">
+              {(stats?.percentMedioGasto || 0) > 10 ? ">1000%" : `${((stats?.percentMedioGasto || 0) * 100).toFixed(1)}%`}
+            </div>
+            <p className="text-xs text-muted-foreground">Da renda média mensal</p>
           </CardContent>
         </Card>
       </div>
