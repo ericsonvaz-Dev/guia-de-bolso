@@ -132,8 +132,15 @@ function PaginaContasFixas() {
   });
 
   const form = useForm<FormValues>({
-
-  const upsertMutation = useMutation({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      descricao: "",
+      categoria_id: "",
+      valor: 0,
+      dia: 1,
+      ativo: true,
+    } as FormValues,
+  });
     mutationFn: async (values: FormValues) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
