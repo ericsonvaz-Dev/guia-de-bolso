@@ -9,11 +9,13 @@ import {
   Wallet,
   Calendar as CalendarIcon,
   CheckCircle2,
-  Clock
+  Clock,
+  AlertTriangle
 } from "lucide-react";
 import { format, addMonths, subMonths, startOfMonth, setMonth, setYear } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip as RechartsTooltip } from "recharts";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { useDadosFinanceiros } from "@/hooks/use-dados-financeiros";
 import { formatarBRL, formatarData, MESES_PT_BR } from "@/lib/formatadores";
@@ -39,7 +41,7 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
+
 
 export const Route = createFileRoute("/_authenticated/mes")({
   head: () => ({
@@ -57,6 +59,20 @@ export const Route = createFileRoute("/_authenticated/mes")({
 function PaginaMes() {
   const queryClient = useQueryClient();
   const [dataSelecionada, setDataSelecionada] = useState(new Date());
+  
+  const fixCategoriesMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.rpc("fix_user_categories");
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["dados-financeiros", ano, mes] });
+      toast.success("Categorias padrão adicionadas!");
+    },
+    onError: (error: any) => {
+      toast.error("Erro ao adicionar categorias: " + error.message);
+    },
+  });
   
   const mes = dataSelecionada.getMonth() + 1;
   const ano = dataSelecionada.getFullYear();
@@ -123,6 +139,25 @@ function PaginaMes() {
 
   return (
     <div className="space-y-6 p-4 md:p-8 max-w-7xl mx-auto">
+      {resumo && Object.keys(resumo.gastosPorCategoria).length === 0 && (
+        <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="h-5 w-5 text-amber-500" />
+            <div>
+              <p className="text-sm font-semibold text-amber-800">Nenhuma categoria encontrada</p>
+              <p className="text-xs text-amber-700">Para lançar movimentações, você precisa de categorias. Clique ao lado para restaurar as categorias padrão.</p>
+            </div>
+          </div>
+          <Button 
+            size="sm" 
+            className="bg-amber-600 hover:bg-amber-700 text-white shrink-0"
+            onClick={() => fixCategoriesMutation.mutate()}
+            disabled={fixCategoriesMutation.isPending}
+          >
+            {fixCategoriesMutation.isPending ? "Criando..." : "Criar Categorias Padrão"}
+          </Button>
+        </div>
+      )}
       {/* Cabeçalho de Navegação */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card p-4 rounded-xl border shadow-sm">
         <div className="flex items-center gap-2">

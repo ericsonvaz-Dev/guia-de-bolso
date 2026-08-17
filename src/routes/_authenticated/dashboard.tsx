@@ -6,9 +6,10 @@ import {
   DollarSign, 
   PieChart, 
   BarChart3,
-  Calendar as CalendarIcon
+  Calendar as CalendarIcon,
+  AlertTriangle
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
   Bar, 
   BarChart, 
@@ -25,9 +26,11 @@ import {
 
 import { supabase } from "@/integrations/supabase/client";
 import { formatarBRL, MESES_PT_BR } from "@/lib/formatadores";
+import { toast } from "sonner";
 import { processarResumoFinanceiro } from "@/lib/financas";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -44,7 +47,22 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 });
 
 function PaginaDashboard() {
+  const queryClient = useQueryClient();
   const [ano, setAno] = useState(new Date().getFullYear());
+  
+  const fixCategoriesMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.rpc("fix_user_categories");
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["dados-anuais", ano] });
+      toast.success("Categorias padrão adicionadas!");
+    },
+    onError: (error: any) => {
+      toast.error("Erro ao adicionar categorias: " + error.message);
+    },
+  });
   const anosDisponiveis = useMemo(() => {
     const atual = new Date().getFullYear();
     return Array.from({ length: 5 }, (_, i) => atual - 2 + i);
@@ -148,6 +166,25 @@ function PaginaDashboard() {
 
   return (
     <div className="space-y-6">
+      {dadosAnuais && dadosAnuais.categorias.length === 0 && (
+        <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="h-5 w-5 text-amber-500" />
+            <div>
+              <p className="text-sm font-semibold text-amber-800">Nenhuma categoria encontrada</p>
+              <p className="text-xs text-amber-700">O sistema precisa de categorias para funcionar corretamente. Clique ao lado para restaurar os padrões.</p>
+            </div>
+          </div>
+          <Button 
+            size="sm" 
+            className="bg-amber-600 hover:bg-amber-700 text-white shrink-0"
+            onClick={() => fixCategoriesMutation.mutate()}
+            disabled={fixCategoriesMutation.isPending}
+          >
+            {fixCategoriesMutation.isPending ? "Criando..." : "Criar Categorias Padrão"}
+          </Button>
+        </div>
+      )}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Dashboard {ano}</h1>

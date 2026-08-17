@@ -199,7 +199,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      fix_user_categories: { Args: never; Returns: undefined }
     }
     Enums: {
       status_lancamento: "pago" | "pendente"
