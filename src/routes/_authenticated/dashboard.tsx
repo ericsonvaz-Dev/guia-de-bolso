@@ -223,9 +223,9 @@ function PaginaDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BarChart3 className="h-5 w-5 text-[#1F4E78]" />
-              Fluxo Mensal
+              Receitas vs Despesas
             </CardTitle>
-            <CardDescription>Comparativo de receitas e despesas por mês.</CardDescription>
+            <CardDescription>Fluxo mensal de entradas e saídas.</CardDescription>
           </CardHeader>
           <CardContent className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -258,38 +258,45 @@ function PaginaDashboard() {
         <Card className="col-span-1">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <PieChart className="h-5 w-5 text-[#1F4E78]" />
-              Distribuição Anual
+              <TrendingUp className="h-5 w-5 text-[#1F4E78]" />
+              Evolução do Saldo
             </CardTitle>
-            <CardDescription>Gastos acumulados por categoria no ano.</CardDescription>
+            <CardDescription>Saldo líquido ao longo do ano.</CardDescription>
           </CardHeader>
           <CardContent className="h-[350px]">
-            {stats?.pieData.length === 0 ? (
-              <div className="flex h-full items-center justify-center text-muted-foreground">
-                Sem dados para exibir.
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <RechartsPieChart>
-                  <Pie
-                    data={stats?.pieData || []}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={100}
-                    paddingAngle={5}
-                    dataKey="total"
-                    nameKey="nome"
-                  >
-                    {(stats?.pieData || []).map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.cor} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value: any) => formatarBRL(Number(value))} />
-                  <Legend />
-                </RechartsPieChart>
-              </ResponsiveContainer>
-            )}
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={dadosAnuais?.resumoPorMes || []}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis 
+                  dataKey="nomeMes" 
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 12 }}
+                />
+                <YAxis 
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 12 }}
+                  tickFormatter={(value) => `R$ ${value}`}
+                />
+                <Tooltip 
+                  formatter={(value: any) => formatarBRL(Number(value))}
+                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                />
+                <Bar 
+                  name="Saldo" 
+                  dataKey="saldo" 
+                  radius={[4, 4, 0, 0]}
+                >
+                  {(dadosAnuais?.resumoPorMes || []).map((entry, index) => (
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={entry.saldo >= 0 ? "#1F4E78" : "#C62828"} 
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
       </div>
@@ -298,7 +305,7 @@ function PaginaDashboard() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <CalendarIcon className="h-5 w-5 text-[#1F4E78]" />
-            Resumo Mensal Detalhado
+            Tabela Anual Detalhada
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -307,10 +314,12 @@ function PaginaDashboard() {
               <thead>
                 <tr className="border-b text-muted-foreground">
                   <th className="text-left py-3 px-2 font-medium">Mês</th>
-                  <th className="text-right py-3 px-2 font-medium">Receitas</th>
-                  <th className="text-right py-3 px-2 font-medium">Despesas</th>
+                  <th className="text-right py-3 px-2 font-medium text-[#2E7D32]">Receitas</th>
+                  <th className="text-right py-3 px-2 font-medium text-[#C62828]">Despesas</th>
                   <th className="text-right py-3 px-2 font-medium">Saldo</th>
                   <th className="text-center py-3 px-2 font-medium">% Gasto</th>
+                  <th className="text-right py-3 px-2 font-medium">Pagas</th>
+                  <th className="text-right py-3 px-2 font-medium">Pendentes</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -333,9 +342,30 @@ function PaginaDashboard() {
                         <span className="text-[10px] w-8">{(m.percentGasto * 100).toFixed(0)}%</span>
                       </div>
                     </td>
+                    <td className="py-3 px-2 text-right text-[#2E7D32]">{formatarBRL(m.pagas)}</td>
+                    <td className="py-3 px-2 text-right text-[#F9A825]">{formatarBRL(m.pendentes)}</td>
                   </tr>
                 ))}
               </tbody>
+              <tfoot className="bg-muted/30 font-bold border-t">
+                <tr>
+                  <td className="py-4 px-2">TOTAL/MÉDIA</td>
+                  <td className="py-4 px-2 text-right text-[#2E7D32]">{formatarBRL(stats?.totalReceitas || 0)}</td>
+                  <td className="py-4 px-2 text-right text-[#C62828]">{formatarBRL(stats?.totalDespesas || 0)}</td>
+                  <td className={`py-4 px-2 text-right ${(stats?.saldo || 0) >= 0 ? 'text-[#1F4E78]' : 'text-[#C62828]'}`}>
+                    {formatarBRL(stats?.saldo || 0)}
+                  </td>
+                  <td className="py-4 px-2 text-center text-primary">
+                    {((stats?.percentMedioGasto || 0) * 100).toFixed(1)}%
+                  </td>
+                  <td className="py-4 px-2 text-right text-[#2E7D32]">
+                    {formatarBRL(dadosAnuais?.resumoPorMes.reduce((acc, m) => acc + m.pagas, 0) || 0)}
+                  </td>
+                  <td className="py-4 px-2 text-right text-[#F9A825]">
+                    {formatarBRL(dadosAnuais?.resumoPorMes.reduce((acc, m) => acc + m.pendentes, 0) || 0)}
+                  </td>
+                </tr>
+              </tfoot>
             </table>
           </div>
         </CardContent>
