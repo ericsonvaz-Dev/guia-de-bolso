@@ -124,6 +124,20 @@ function PaginaParcelas() {
     },
   });
 
+  const fixCategoriesMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.rpc("fix_user_categories");
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categorias-despesas"] });
+      toast.success("Categorias padrão adicionadas!");
+    },
+    onError: (error: any) => {
+      toast.error("Erro ao adicionar categorias: " + error.message);
+    },
+  });
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -306,6 +320,21 @@ function PaginaParcelas() {
                           </SelectContent>
                         </Select>
                         <FormMessage />
+                        {categorias?.length === 0 && (
+                          <div className="mt-2 text-xs text-destructive flex flex-col gap-1">
+                            <span>Nenhuma categoria encontrada.</span>
+                            <Button 
+                              type="button" 
+                              variant="link" 
+                              size="sm" 
+                              className="h-auto p-0 text-[#6A1B9A] justify-start"
+                              onClick={() => fixCategoriesMutation.mutate()}
+                              disabled={fixCategoriesMutation.isPending}
+                            >
+                              Clique aqui para criar as categorias padrão
+                            </Button>
+                          </div>
+                        )}
                       </FormItem>
                     )}
                   />
