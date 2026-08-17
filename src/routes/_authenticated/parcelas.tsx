@@ -134,8 +134,8 @@ function PaginaParcelas() {
       mes_inicio: new Date().getMonth() + 1,
       ano_inicio: new Date().getFullYear(),
       data_primeira_parcela: new Date().toISOString().split("T")[0],
-      status: "ativo" as FormValues["status"],
-    },
+      status: "ativo",
+    } as FormValues,
   });
 
   const watchValues = form.watch();
@@ -239,7 +239,7 @@ function PaginaParcelas() {
       ano_inicio: new Date().getFullYear(),
       data_primeira_parcela: new Date().toISOString().split("T")[0],
       status: "ativo",
-    });
+    } as FormValues);
   };
 
   return (
