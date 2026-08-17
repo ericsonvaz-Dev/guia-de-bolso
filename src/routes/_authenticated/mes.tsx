@@ -85,11 +85,34 @@ function PaginaMes() {
     );
   };
 
-  const alternarStatus = async (id: string, statusAtual: string, origin?: string) => {
-    if (origin === "fixa") {
-      // Para contas fixas, criamos um lançamento real se for marcada como paga
-      // ou atualizamos se já existir (a lógica de processamento lida com isso)
-      toast.info("Funcionalidade de lançar conta fixa em desenvolvimento");
+  const alternarStatus = async (id: string, statusAtual: string, origin?: string, item?: any) => {
+    if (origin === "fixa" && item) {
+      // Para contas fixas virtuais, ao marcar como pago, criamos um lançamento real
+      const { error } = await supabase
+        .from("lancamentos")
+        .insert({
+          user_id: item.user_id,
+          descricao: item.descricao,
+          valor: item.valor,
+          tipo: "despesa",
+          status: "pago",
+          categoria_id: item.categoria_id,
+          data: item.data,
+          mes: item.mes,
+          ano: item.ano
+        });
+
+      if (error) {
+        toast.error("Erro ao registrar pagamento da conta fixa");
+      } else {
+        queryClient.invalidateQueries({ queryKey: ["dados-financeiros", ano, mes] });
+        toast.success("Conta fixa registrada como paga!");
+      }
+      return;
+    }
+
+    if (origin === "parcela") {
+      toast.info("Para dar baixa em parcelas, utilize a aba de Parcelas ou registre um lançamento manual.");
       return;
     }
 
@@ -305,7 +328,7 @@ function PaginaMes() {
                         {formatarBRL(d.valor)}
                       </TableCell>
                       <TableCell className="text-center">
-                        <button onClick={() => alternarStatus(d.id, d.status, d.origin)}>
+                        <button onClick={() => alternarStatus(d.id, d.status, d.origin, d)}>
                           <StatusBadge status={d.status} className="cursor-pointer hover:opacity-80 transition-opacity" />
                         </button>
                       </TableCell>
