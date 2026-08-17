@@ -57,10 +57,10 @@ function PaginaDashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["dados-anuais", ano] });
-      toast.success("Categorias padrão adicionadas!");
+      toast.success("Categorias padrão restauradas!");
     },
     onError: (error: any) => {
-      toast.error("Erro ao adicionar categorias: " + error.message);
+      toast.error("Erro ao processar categorias. Tente novamente.");
     },
   });
   const anosDisponiveis = useMemo(() => {
