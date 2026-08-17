@@ -454,6 +454,9 @@ function PaginaContasFixas() {
         <div className="text-sm text-[#F9A825]">
           <p className="font-semibold">Como funciona?</p>
           <p>As contas fixas ativas são lançadas automaticamente na sua tela de "Mês" como pendentes. Você pode marcar como pago individualmente em cada mês sem afetar a configuração original aqui.</p>
+          <p className="mt-2 text-xs opacity-80 italic">
+            Dica: Se ao adicionar uma conta não houver nenhuma categoria, adicione as seguintes opções: Moradia, Contas da Casa, Alimentação, Transporte, Saúde, Compras, Lazer, Viagens, Educação.
+          </p>
         </div>
       </div>
     </div>
