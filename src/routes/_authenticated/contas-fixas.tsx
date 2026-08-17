@@ -63,7 +63,7 @@ const formSchema = z.object({
   categoria_id: z.string().min(1, "Categoria é obrigatória"),
   valor: z.number().min(0.01, "Valor deve ser maior que zero"),
   dia: z.number().min(1, "Dia mínimo 1").max(31, "Dia máximo 31"),
-  ativo: z.boolean().default(true),
+  ativo: z.boolean(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
