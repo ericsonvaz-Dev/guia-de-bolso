@@ -67,10 +67,10 @@ function PaginaMes() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["dados-financeiros", ano, mes] });
-      toast.success("Categorias padrão adicionadas!");
+      toast.success("Categorias padrão restauradas!");
     },
     onError: (error: any) => {
-      toast.error("Erro ao adicionar categorias: " + error.message);
+      toast.error("Erro ao processar categorias. Tente novamente.");
     },
   });
   
