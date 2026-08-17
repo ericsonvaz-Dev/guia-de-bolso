@@ -125,7 +125,7 @@ function PaginaContasFixas() {
       valor: 0,
       dia: 1,
       ativo: true,
-    },
+    } as FormValues,
   });
 
   const upsertMutation = useMutation({
