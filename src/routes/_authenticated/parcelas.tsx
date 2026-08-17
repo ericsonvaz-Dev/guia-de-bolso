@@ -239,7 +239,7 @@ function PaginaParcelas() {
       ano_inicio: new Date().getFullYear(),
       data_primeira_parcela: new Date().toISOString().split("T")[0],
       status: "ativo",
-    });
+    } as FormValues);
   };
 
   return (
