@@ -191,7 +191,7 @@ function PaginaDashboard() {
           </CardHeader>
           <CardContent className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={dadosAnuais?.resumoPorMes}>
+              <BarChart data={dadosAnuais?.resumoPorMes || []}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis 
                   dataKey="nomeMes" 
@@ -206,7 +206,7 @@ function PaginaDashboard() {
                   tickFormatter={(value) => `R$ ${value}`}
                 />
                 <Tooltip 
-                  formatter={(value: number) => formatarBRL(value)}
+                  formatter={(value: any) => formatarBRL(Number(value))}
                   contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                 />
                 <Legend />
