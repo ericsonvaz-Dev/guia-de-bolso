@@ -141,7 +141,8 @@ function PaginaContasFixas() {
       ativo: true,
     } as FormValues,
   });
-    mutationFn: async (values: FormValues) => {
+  
+  const upsertMutation = useMutation({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
 
