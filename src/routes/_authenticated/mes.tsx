@@ -15,10 +15,13 @@ import {
 import { format, addMonths, subMonths, startOfMonth, setMonth, setYear } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip as RechartsTooltip } from "recharts";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 
 import { useDadosFinanceiros } from "@/hooks/use-dados-financeiros";
-import { formatarBRL, formatarData, MESES_PT_BR } from "@/lib/formatadores";
+import { formatarBRL, formatarData, MESES_PT_BR, paraNumero } from "@/lib/formatadores";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status-badge";
@@ -37,6 +40,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -56,10 +77,97 @@ export const Route = createFileRoute("/_authenticated/mes")({
   component: PaginaMes,
 });
 
+const formSchema = z.object({
+  descricao: z.string().min(1, "Descrição é obrigatória"),
+  categoria_id: z.string().min(1, "Categoria é obrigatória"),
+  valor: z.number().min(0.01, "Valor deve ser maior que zero"),
+  data: z.string().min(1, "Data é obrigatória"),
+  tipo: z.enum(["receita", "despesa"]),
+  status: z.enum(["pago", "pendente"]),
+});
+
+type FormValues = z.infer<typeof formSchema>;
+
 function PaginaMes() {
   const queryClient = useQueryClient();
   const [dataSelecionada, setDataSelecionada] = useState(new Date());
+  const [tipoNovoLancamento, setTipoNovoLancamento] = useState<"receita" | "despesa" | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   
+  const mes = dataSelecionada.getMonth() + 1;
+  const ano = dataSelecionada.getFullYear();
+
+  const { data: categorias } = useQuery({
+    queryKey: ["categorias", tipoNovoLancamento],
+    queryFn: async () => {
+      if (!tipoNovoLancamento) return [];
+      const { data, error } = await supabase
+        .from("categorias")
+        .select("*")
+        .eq("tipo", tipoNovoLancamento);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!tipoNovoLancamento,
+  });
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      descricao: "",
+      categoria_id: "",
+      valor: 0,
+      data: format(new Date(ano, mes - 1, Math.min(new Date().getDate(), 28)), "yyyy-MM-dd"),
+      tipo: "receita",
+      status: "pendente",
+    },
+  });
+
+  const upsertMutation = useMutation({
+    mutationFn: async (values: FormValues) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Não autenticado");
+
+      const dataLancamento = new Date(values.data + 'T12:00:00');
+      
+      const { error } = await supabase.from("lancamentos").insert({
+        user_id: user.id,
+        descricao: values.descricao,
+        categoria_id: values.categoria_id,
+        valor: values.valor,
+        data: values.data,
+        tipo: values.tipo,
+        status: values.status,
+        mes: dataLancamento.getMonth() + 1,
+        ano: dataLancamento.getFullYear(),
+      });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["dados-financeiros", ano, mes] });
+      toast.success("Lançamento criado com sucesso!");
+      setIsDialogOpen(false);
+      form.reset();
+    },
+    onError: (error: any) => {
+      toast.error("Erro ao criar lançamento: " + error.message);
+    },
+  });
+
+  const openNovoLancamento = (tipo: "receita" | "despesa") => {
+    setTipoNovoLancamento(tipo);
+    form.reset({
+      descricao: "",
+      categoria_id: "",
+      valor: 0,
+      data: format(new Date(ano, mes - 1, Math.min(new Date().getDate(), 28)), "yyyy-MM-dd"),
+      tipo: tipo,
+      status: tipo === "receita" ? "pago" : "pendente",
+    });
+    setIsDialogOpen(true);
+  };
+
   const fixCategoriesMutation = useMutation({
     mutationFn: async () => {
       const { error } = await supabase.rpc("fix_user_categories");
@@ -67,15 +175,13 @@ function PaginaMes() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["dados-financeiros", ano, mes] });
+      queryClient.invalidateQueries({ queryKey: ["categorias"] });
       toast.success("Categorias padrão restauradas!");
     },
     onError: (error: any) => {
       toast.error("Erro ao processar categorias. Tente novamente.");
     },
   });
-  
-  const mes = dataSelecionada.getMonth() + 1;
-  const ano = dataSelecionada.getFullYear();
   
   const { data: resumo, isLoading } = useDadosFinanceiros(mes, ano);
 
@@ -240,7 +346,12 @@ function PaginaMes() {
                 <TrendingUp className="w-5 h-5 text-receita" />
                 <CardTitle className="text-receita uppercase tracking-wider text-sm font-bold">Receitas</CardTitle>
               </div>
-              <Button size="sm" variant="outline" className="h-8 gap-1 text-receita border-receita/20 hover:bg-receita/10">
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="h-8 gap-1 text-receita border-receita/20 hover:bg-receita/10"
+                onClick={() => openNovoLancamento("receita")}
+              >
                 <Plus className="w-4 h-4" /> Nova Receita
               </Button>
             </CardHeader>
@@ -293,7 +404,12 @@ function PaginaMes() {
                 <TrendingDown className="w-5 h-5 text-negativo" />
                 <CardTitle className="text-negativo uppercase tracking-wider text-sm font-bold">Despesas</CardTitle>
               </div>
-              <Button size="sm" variant="outline" className="h-8 gap-1 text-negativo border-negativo/20 hover:bg-negativo/10">
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="h-8 gap-1 text-negativo border-negativo/20 hover:bg-negativo/10"
+                onClick={() => openNovoLancamento("despesa")}
+              >
                 <Plus className="w-4 h-4" /> Nova Despesa
               </Button>
             </CardHeader>
@@ -484,6 +600,130 @@ function PaginaMes() {
           </Card>
         </div>
       </div>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>
+              {tipoNovoLancamento === "receita" ? "Nova Receita" : "Nova Despesa"}
+            </DialogTitle>
+            <DialogDescription>
+              Preencha os dados do lançamento abaixo.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit((v) => upsertMutation.mutate(v))} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="descricao"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Descrição</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ex: Salário, Aluguel..." {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="valor"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Valor (R$)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          step="0.01" 
+                          placeholder="0,00" 
+                          value={field.value}
+                          onChange={(e) => field.onChange(paraNumero(e.target.value))}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="data"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Data</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <FormField
+                control={form.control}
+                name="categoria_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Categoria</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {categorias?.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.id}>
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.cor }} />
+                              {cat.nome}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="pago">Pago / Recebido</SelectItem>
+                        <SelectItem value="pendente">Pendente</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={upsertMutation.isPending}
+                  className={tipoNovoLancamento === "receita" ? "bg-receita hover:bg-receita/90" : "bg-negativo hover:bg-negativo/90"}
+                >
+                  {upsertMutation.isPending ? "Salvando..." : "Salvar Lançamento"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
