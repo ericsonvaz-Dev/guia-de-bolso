@@ -22,6 +22,7 @@ import * as z from "zod";
 
 import { useDadosFinanceiros } from "@/hooks/use-dados-financeiros";
 import { formatarBRL, formatarData, MESES_PT_BR, paraNumero } from "@/lib/formatadores";
+import { PALETA_CATEGORIAS } from "@/lib/cores-categorias.ts";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status-badge";
@@ -192,50 +193,49 @@ function PaginaMes() {
   };
 
   const alternarStatus = async (id: string, statusAtual: string, origin?: string, item?: any) => {
-    if (origin === "fixa" && item) {
-      // Para contas fixas virtuais, ao marcar como pago, criamos um lançamento real
-      const { error } = await supabase
-        .from("lancamentos")
-        .insert({
-          user_id: item.user_id,
-          descricao: item.descricao,
-          valor: item.valor,
-          tipo: "despesa",
-          status: "pago",
-          categoria_id: item.categoria_id,
-          data: item.data,
-          mes: item.mes,
-          ano: item.ano
-        });
+    if ((origin === "fixa" || origin === "parcela") && item) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-      if (error) {
-        toast.error("Erro ao registrar pagamento da conta fixa");
-      } else {
-        queryClient.invalidateQueries({ queryKey: ["dados-financeiros", ano, mes] });
-        toast.success("Conta fixa registrada como paga!");
-      }
-      return;
-    }
-
-    if (origin === "parcela") {
-      const novoStatus = statusAtual === "pago" ? "pendente" : "pago";
+      const isVirtual = item.virtual;
+      const origemId = origin === "fixa" ? item.id.replace('fixa-', '') : item.id.replace('parcela-', '');
       
-      const { error } = await supabase
-        .from("lancamentos")
-        .update({ status: novoStatus })
-        .eq("id", id);
+      // Se já houver um registro de pagamento (item.pagamentosOcorrencia), deletamos ou invertemos
+      if (item.pagamentosOcorrencia) {
+        const { error } = await supabase
+          .from("pagamentos_ocorrencia")
+          .delete()
+          .eq("id", item.pagamentosOcorrencia.id);
 
-      if (error) {
-        toast.error("Erro ao atualizar status da parcela");
+        if (error) {
+          toast.error("Erro ao atualizar status");
+        } else {
+          queryClient.invalidateQueries({ queryKey: ["dados-financeiros", ano, mes] });
+          toast.success("Status atualizado!");
+        }
       } else {
-        queryClient.invalidateQueries({ queryKey: ["dados-financeiros", ano, mes] });
-        toast.success(`Status da parcela alterado para ${novoStatus}`);
+        const { error } = await supabase
+          .from("pagamentos_ocorrencia")
+          .insert({
+            user_id: user.id,
+            origem: origin,
+            origem_id: origemId,
+            mes,
+            ano,
+            pago: true
+          });
+
+        if (error) {
+          toast.error("Erro ao registrar pagamento");
+        } else {
+          queryClient.invalidateQueries({ queryKey: ["dados-financeiros", ano, mes] });
+          toast.success("Marcado como pago!");
+        }
       }
       return;
     }
 
     const novoStatus = statusAtual === "pago" ? "pendente" : "pago";
-    
     const { error } = await supabase
       .from("lancamentos")
       .update({ status: novoStatus })
@@ -273,10 +273,11 @@ function PaginaMes() {
     if (!resumo?.gastosPorCategoria) return [];
     return Object.values(resumo.gastosPorCategoria)
       .filter(c => c.total > 0)
-      .map(c => ({
+      .sort((a, b) => b.total - a.total)
+      .map((c, index) => ({
         name: c.nome,
         value: c.total,
-        color: c.cor
+        color: PALETA_CATEGORIAS[index % PALETA_CATEGORIAS.length]
       }));
   }, [resumo]);
 
@@ -318,46 +319,48 @@ function PaginaMes() {
           </h1>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={() => navegarMes("anterior")}>
-            <ChevronLeft className="w-4 h-4" />
-          </Button>
-          
-          <Select 
-            value={mes.toString()} 
-            onValueChange={(v) => setDataSelecionada(setMonth(dataSelecionada, parseInt(v) - 1))}
-          >
-            <SelectTrigger className="w-[130px]">
-              <SelectValue placeholder="Mês" />
-            </SelectTrigger>
-            <SelectContent>
-              {MESES_PT_BR.map((m, i) => (
-                <SelectItem key={m} value={(i + 1).toString()}>{m}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+          <div className="flex items-center gap-2 w-full md:w-auto justify-between md:justify-start">
+            <Button variant="outline" size="icon" onClick={() => navegarMes("anterior")}>
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            
+            <Select 
+              value={mes.toString()} 
+              onValueChange={(v) => setDataSelecionada(setMonth(dataSelecionada, parseInt(v) - 1))}
+            >
+              <SelectTrigger className="w-full md:w-[130px]">
+                <SelectValue placeholder="Mês" />
+              </SelectTrigger>
+              <SelectContent>
+                {MESES_PT_BR.map((m, i) => (
+                  <SelectItem key={m} value={(i + 1).toString()}>{m}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-          <Select 
-            value={ano.toString()} 
-            onValueChange={(v) => setDataSelecionada(setYear(dataSelecionada, parseInt(v)))}
-          >
-            <SelectTrigger className="w-[100px]">
-              <SelectValue placeholder="Ano" />
-            </SelectTrigger>
-            <SelectContent>
-              {[2024, 2025, 2026, 2027].map(y => (
-                <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <Select 
+              value={ano.toString()} 
+              onValueChange={(v) => setDataSelecionada(setYear(dataSelecionada, parseInt(v)))}
+            >
+              <SelectTrigger className="w-full md:w-[100px]">
+                <SelectValue placeholder="Ano" />
+              </SelectTrigger>
+              <SelectContent>
+                {[2024, 2025, 2026, 2027, 2028].map(y => (
+                  <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-          <Button variant="outline" size="icon" onClick={() => navegarMes("proximo")}>
-            <ChevronRight className="w-4 h-4" />
-          </Button>
+            <Button variant="outline" size="icon" onClick={() => navegarMes("proximo")}>
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Lançamentos */}
         <div className="lg:col-span-3 space-y-6">
           
@@ -378,7 +381,8 @@ function PaginaMes() {
               </Button>
             </CardHeader>
             <CardContent className="p-0">
-              <Table>
+              <div className="w-full overflow-x-auto">
+                <Table className="min-w-[700px]">
                 <TableHeader>
                   <TableRow className="hover:bg-transparent border-b">
                     <TableHead className="w-[120px]">Data</TableHead>
@@ -415,7 +419,8 @@ function PaginaMes() {
                     ))
                   )}
                 </TableBody>
-              </Table>
+                </Table>
+              </div>
             </CardContent>
           </Card>
 
@@ -436,7 +441,8 @@ function PaginaMes() {
               </Button>
             </CardHeader>
             <CardContent className="p-0">
-              <Table>
+              <div className="w-full overflow-x-auto">
+                <Table className="min-w-[700px]">
                 <TableHeader>
                   <TableRow className="hover:bg-transparent border-b">
                     <TableHead className="w-[120px]">Data</TableHead>
@@ -490,7 +496,8 @@ function PaginaMes() {
                     </TableRow>
                   )}
                 </TableBody>
-              </Table>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -592,7 +599,7 @@ function PaginaMes() {
                         dataKey="value"
                       >
                         {dadosGrafico.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
+                          <Cell key={`cell-${index}`} fill={entry.color || "#888888"} />
                         ))}
                       </Pie>
                       <RechartsTooltip 
