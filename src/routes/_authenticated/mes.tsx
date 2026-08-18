@@ -10,7 +10,8 @@ import {
   Calendar as CalendarIcon,
   CheckCircle2,
   Clock,
-  AlertTriangle
+  AlertTriangle,
+  Trash2
 } from "lucide-react";
 import { format, addMonths, subMonths, startOfMonth, setMonth, setYear } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -59,6 +60,16 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -94,6 +105,7 @@ function PaginaMes() {
   const [dataSelecionada, setDataSelecionada] = useState(new Date());
   const [tipoNovoLancamento, setTipoNovoLancamento] = useState<"receita" | "despesa" | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [itemParaExcluir, setItemParaExcluir] = useState<string | null>(null);
   
   const mes = dataSelecionada.getMonth() + 1;
   const ano = dataSelecionada.getFullYear();
@@ -153,6 +165,21 @@ function PaginaMes() {
     },
     onError: (error: any) => {
       toast.error("Erro ao criar lançamento: " + error.message);
+    },
+  });
+
+  const excluirMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("lancamentos").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["dados-financeiros", ano, mes] });
+      toast.success("Lançamento excluído com sucesso!");
+      setItemParaExcluir(null);
+    },
+    onError: (error: any) => {
+      toast.error("Erro ao excluir lançamento: " + error.message);
     },
   });
 
@@ -389,13 +416,14 @@ function PaginaMes() {
                     <TableHead>Descrição</TableHead>
                     <TableHead>Categoria</TableHead>
                     <TableHead className="text-right">Valor</TableHead>
-                    <TableHead className="w-[100px] text-center">Status</TableHead>
+                    <TableHead className="w-[80px] text-center">Status</TableHead>
+                    <TableHead className="w-[60px] text-center">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {receitas.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                         Nenhuma receita lançada.
                       </TableCell>
                     </TableRow>
@@ -414,6 +442,28 @@ function PaginaMes() {
                           <button onClick={() => alternarStatus(r.id, r.status)}>
                             <StatusBadge status={r.status} className="cursor-pointer hover:opacity-80 transition-opacity" />
                           </button>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {!r.virtual ? (
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                              onClick={() => setItemParaExcluir(r.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          ) : (
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 opacity-20 cursor-not-allowed"
+                              disabled
+                              title="Itens fixos/parcelas são gerenciados em suas respectivas abas"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))
@@ -747,6 +797,27 @@ function PaginaMes() {
           </Form>
         </DialogContent>
       </Dialog>
+
+      {/* Alerta de Confirmação de Exclusão */}
+      <AlertDialog open={!!itemParaExcluir} onOpenChange={(open) => !open && setItemParaExcluir(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este lançamento? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => itemParaExcluir && excluirMutation.mutate(itemParaExcluir)}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
