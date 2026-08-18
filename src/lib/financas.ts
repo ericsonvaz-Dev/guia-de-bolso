@@ -45,7 +45,10 @@ export function processarResumoFinanceiro(
   let pagas = 0;
   let pendentes = 0;
   const gastosPorCategoria: Record<string, { nome: string; total: number; cor: string }> = {};
-  const lancamentosCompletos: (Lancamento & { virtual?: boolean; origin?: "fixa" | "parcela"; pagamentosOcorrencia?: PagamentoOcorrencia | null })[] = [...lancamentos.map(l => ({ ...l, pagamentosOcorrencia: null }))];
+  
+  // Lista de IDs ou descrições para evitar duplicação (agora mais simples, 
+  // pois não usaremos lançamentos manuais para fixas/parcelas)
+  const lancamentosCompletos: (Lancamento & { virtual?: boolean; origin?: "fixa" | "parcela"; pagamentosOcorrencia?: PagamentoOcorrencia | null })[] = [];
 
   categorias.forEach((cat) => {
     gastosPorCategoria[cat.id] = { nome: cat.nome, total: 0, cor: cat.cor };
@@ -63,6 +66,7 @@ export function processarResumoFinanceiro(
       }
       if (l.status === "pago") pagas += valor; else pendentes += valor;
     }
+    lancamentosCompletos.push({ ...l, pagamentosOcorrencia: null });
   });
 
   contasFixas.forEach((cf) => {
