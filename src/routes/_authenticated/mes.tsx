@@ -77,10 +77,97 @@ export const Route = createFileRoute("/_authenticated/mes")({
   component: PaginaMes,
 });
 
+const formSchema = z.object({
+  descricao: z.string().min(1, "Descrição é obrigatória"),
+  categoria_id: z.string().min(1, "Categoria é obrigatória"),
+  valor: z.number().min(0.01, "Valor deve ser maior que zero"),
+  data: z.string().min(1, "Data é obrigatória"),
+  tipo: z.enum(["receita", "despesa"]),
+  status: z.enum(["pago", "pendente"]),
+});
+
+type FormValues = z.infer<typeof formSchema>;
+
 function PaginaMes() {
   const queryClient = useQueryClient();
   const [dataSelecionada, setDataSelecionada] = useState(new Date());
+  const [tipoNovoLancamento, setTipoNovoLancamento] = useState<"receita" | "despesa" | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   
+  const mes = dataSelecionada.getMonth() + 1;
+  const ano = dataSelecionada.getFullYear();
+
+  const { data: categorias } = useQuery({
+    queryKey: ["categorias", tipoNovoLancamento],
+    queryFn: async () => {
+      if (!tipoNovoLancamento) return [];
+      const { data, error } = await supabase
+        .from("categorias")
+        .select("*")
+        .eq("tipo", tipoNovoLancamento);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!tipoNovoLancamento,
+  });
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      descricao: "",
+      categoria_id: "",
+      valor: 0,
+      data: format(new Date(ano, mes - 1, Math.min(new Date().getDate(), 28)), "yyyy-MM-dd"),
+      tipo: "receita",
+      status: "pendente",
+    },
+  });
+
+  const upsertMutation = useMutation({
+    mutationFn: async (values: FormValues) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Não autenticado");
+
+      const dataLancamento = new Date(values.data + 'T12:00:00');
+      
+      const { error } = await supabase.from("lancamentos").insert({
+        user_id: user.id,
+        descricao: values.descricao,
+        categoria_id: values.categoria_id,
+        valor: values.valor,
+        data: values.data,
+        tipo: values.tipo,
+        status: values.status,
+        mes: dataLancamento.getMonth() + 1,
+        ano: dataLancamento.getFullYear(),
+      });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["dados-financeiros", ano, mes] });
+      toast.success("Lançamento criado com sucesso!");
+      setIsDialogOpen(false);
+      form.reset();
+    },
+    onError: (error: any) => {
+      toast.error("Erro ao criar lançamento: " + error.message);
+    },
+  });
+
+  const openNovoLancamento = (tipo: "receita" | "despesa") => {
+    setTipoNovoLancamento(tipo);
+    form.reset({
+      descricao: "",
+      categoria_id: "",
+      valor: 0,
+      data: format(new Date(ano, mes - 1, Math.min(new Date().getDate(), 28)), "yyyy-MM-dd"),
+      tipo: tipo,
+      status: tipo === "receita" ? "pago" : "pendente",
+    });
+    setIsDialogOpen(true);
+  };
+
   const fixCategoriesMutation = useMutation({
     mutationFn: async () => {
       const { error } = await supabase.rpc("fix_user_categories");
@@ -88,15 +175,13 @@ function PaginaMes() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["dados-financeiros", ano, mes] });
+      queryClient.invalidateQueries({ queryKey: ["categorias"] });
       toast.success("Categorias padrão restauradas!");
     },
     onError: (error: any) => {
       toast.error("Erro ao processar categorias. Tente novamente.");
     },
   });
-  
-  const mes = dataSelecionada.getMonth() + 1;
-  const ano = dataSelecionada.getFullYear();
   
   const { data: resumo, isLoading } = useDadosFinanceiros(mes, ano);
 
