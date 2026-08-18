@@ -329,8 +329,8 @@ function PaginaDashboard() {
           <CardContent className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={[
-                { name: 'Pagas', valor: stats.pagas, fill: '#2E7D32' },
-                { name: 'Pendentes', valor: stats.pendentes, fill: '#F9A825' }
+                { name: 'Pagas', valor: resumo.pagas, fill: '#2E7D32' },
+                { name: 'Pendentes', valor: resumo.pendentes, fill: '#F9A825' }
               ]}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} />

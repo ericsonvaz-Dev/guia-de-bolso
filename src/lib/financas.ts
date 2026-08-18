@@ -39,6 +39,7 @@ export function processarResumoFinanceiro(
   ano: number
 ): ResumoFinanceiro {
   let totalReceitas = 0;
+  let totalDespesas = 0;
   let despesasManuais = 0;
   let totalContasFixas = 0;
   let totalParcelas = 0;
@@ -46,72 +47,91 @@ export function processarResumoFinanceiro(
   let pendentes = 0;
   const gastosPorCategoria: Record<string, { nome: string; total: number; cor: string }> = {};
   
-  // Lista de IDs ou descrições para evitar duplicação (agora mais simples, 
-  // pois não usaremos lançamentos manuais para fixas/parcelas)
   const lancamentosCompletos: (Lancamento & { virtual?: boolean; origin?: "fixa" | "parcela"; pagamentosOcorrencia?: PagamentoOcorrencia | null })[] = [];
 
   categorias.forEach((cat) => {
     gastosPorCategoria[cat.id] = { nome: cat.nome, total: 0, cor: cat.cor };
   });
 
+  // 1. Processar Lançamentos Reais
   lancamentos.forEach((l) => {
     const valor = paraNumero(l.valor);
     if (l.tipo === "receita") {
       totalReceitas += valor;
     } else {
+      // Se for despesa, entra no cálculo de pagas/pendentes
+      totalDespesas += valor;
       despesasManuais += valor;
+      
       if (l.categoria_id) {
         const cat = gastosPorCategoria[l.categoria_id];
         if (cat) cat.total += valor;
       }
-      if (l.status === "pago") pagas += valor; else pendentes += valor;
+      
+      if (l.status === "pago") {
+        pagas += valor;
+      } else {
+        pendentes += valor;
+      }
     }
     lancamentosCompletos.push({ ...l, pagamentosOcorrencia: null });
   });
 
+  // 2. Processar Contas Fixas (Virtuais)
   contasFixas.forEach((cf) => {
     if (!cf.ativo) return;
     const valor = paraNumero(cf.valor);
+    totalDespesas += valor;
     totalContasFixas += valor;
-    const pagamento = pagamentosOcorrencia.find(p => p.origem === 'fixa' && p.origem_id === cf.id);
     
-    if (pagamento?.pago) {
-        pagas += valor;
+    const pagamento = pagamentosOcorrencia.find(p => p.origem === 'fixa' && p.origem_id === cf.id);
+    const isPago = pagamento?.pago || false;
+    
+    if (isPago) {
+      pagas += valor;
     } else {
-        pendentes += valor;
+      pendentes += valor;
     }
 
     if (cf.categoria_id) {
-        const cat = gastosPorCategoria[cf.categoria_id];
-        if (cat) cat.total += valor;
+      const cat = gastosPorCategoria[cf.categoria_id];
+      if (cat) cat.total += valor;
     }
 
     lancamentosCompletos.push({
-        id: `fixa-${cf.id}`,
-        user_id: cf.user_id,
-        descricao: cf.descricao ?? "Conta Fixa",
-        valor: cf.valor,
-        tipo: "despesa",
-        status: pagamento?.pago ? "pago" : "pendente",
-        categoria_id: cf.categoria_id,
-        data: `${ano}-${String(mes).padStart(2, '0')}-${String(paraNumero(cf.dia) || 1).padStart(2, '0')}`,
-        mes,
-        ano,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        virtual: true,
-        origin: "fixa",
-        pagamentosOcorrencia: pagamento ?? null
+      id: `fixa-${cf.id}`,
+      user_id: cf.user_id,
+      descricao: cf.descricao ?? "Conta Fixa",
+      valor: cf.valor,
+      tipo: "despesa",
+      status: isPago ? "pago" : "pendente",
+      categoria_id: cf.categoria_id,
+      data: `${ano}-${String(mes).padStart(2, '0')}-${String(paraNumero(cf.dia) || 1).padStart(2, '0')}`,
+      mes,
+      ano,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      virtual: true,
+      origin: "fixa",
+      pagamentosOcorrencia: pagamento ?? null
     });
   });
 
+  // 3. Processar Parcelas (Virtuais)
   parcelas.forEach((p) => {
     if (calcularParcelaIncidente(p, mes, ano)) {
       const valor = paraNumero(p.valor_parcela);
+      totalDespesas += valor;
       totalParcelas += valor;
-      const pagamento = pagamentosOcorrencia.find(p_occ => p_occ.origem === 'parcela' && p_occ.origem_id === p.id);
       
-      if (pagamento?.pago) pagas += valor; else pendentes += valor;
+      const pagamento = pagamentosOcorrencia.find(p_occ => p_occ.origem === 'parcela' && p_occ.origem_id === p.id);
+      const isPago = pagamento?.pago || false;
+      
+      if (isPago) {
+        pagas += valor;
+      } else {
+        pendentes += valor;
+      }
 
       if (p.categoria_id) {
         const cat = gastosPorCategoria[p.categoria_id];
@@ -124,7 +144,7 @@ export function processarResumoFinanceiro(
         descricao: `Parcela: ${p.descricao ?? "Sem descrição"}`,
         valor: p.valor_parcela,
         tipo: "despesa",
-        status: pagamento?.pago ? "pago" : "pendente",
+        status: isPago ? "pago" : "pendente",
         categoria_id: p.categoria_id,
         data: `${ano}-${String(mes).padStart(2, '0')}-01`,
         mes,
@@ -143,9 +163,9 @@ export function processarResumoFinanceiro(
     despesasManuais,
     totalContasFixas,
     totalParcelas,
-    totalDespesas: despesasManuais + totalContasFixas + totalParcelas,
-    saldo: totalReceitas - (despesasManuais + totalContasFixas + totalParcelas),
-    percentGasto: totalReceitas > 0 ? (despesasManuais + totalContasFixas + totalParcelas) / totalReceitas : 0,
+    totalDespesas,
+    saldo: totalReceitas - totalDespesas,
+    percentGasto: totalReceitas > 0 ? totalDespesas / totalReceitas : 0,
     pagas,
     pendentes,
     gastosPorCategoria,
