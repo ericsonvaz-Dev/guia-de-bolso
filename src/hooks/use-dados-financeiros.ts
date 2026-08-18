@@ -14,6 +14,7 @@ export function useDadosFinanceiros(mes: number, ano: number) {
         { data: lancamentos },
         { data: contasFixas },
         { data: parcelas },
+        { data: pagamentosOcorrencia },
         { data: categorias }
       ] = await Promise.all([
         supabase
@@ -30,6 +31,11 @@ export function useDadosFinanceiros(mes: number, ano: number) {
           .select("*")
           .eq("status", "ativo"),
         supabase
+          .from("pagamentos_ocorrencia")
+          .select("*")
+          .eq("mes", mes)
+          .eq("ano", ano),
+        supabase
           .from("categorias")
           .select("*")
       ]);
@@ -38,6 +44,7 @@ export function useDadosFinanceiros(mes: number, ano: number) {
         lancamentos || [],
         contasFixas || [],
         parcelas || [],
+        pagamentosOcorrencia || [],
         categorias || [],
         mes,
         ano
