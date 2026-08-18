@@ -600,7 +600,6 @@ function PaginaMes() {
           </Card>
         </div>
       </div>
-      </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
