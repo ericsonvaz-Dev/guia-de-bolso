@@ -51,7 +51,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
           Ops! Ocorreu um erro
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
+          Algo deu errado por aqui. Tente atualizar a página ou volte para a home.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
