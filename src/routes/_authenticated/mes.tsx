@@ -434,7 +434,12 @@ function PaginaMes() {
                       <TableCell className="flex items-center gap-2">
                         {d.descricao}
                         {d.virtual && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-saldo text-white font-bold uppercase">Fixa</span>
+                          <span className={cn(
+                            "text-[10px] px-1.5 py-0.5 rounded-full text-white font-bold uppercase",
+                            d.origin === "fixa" ? "bg-saldo" : "bg-parcela"
+                          )}>
+                            {d.origin === "fixa" ? "Fixa" : "Parcela"}
+                          </span>
                         )}
                       </TableCell>
                       <TableCell>
@@ -444,27 +449,17 @@ function PaginaMes() {
                         {formatarBRL(d.valor)}
                       </TableCell>
                       <TableCell className="text-center">
-                        <button onClick={() => alternarStatus(d.id, d.status, d.origin, d)}>
+                        <button 
+                          onClick={() => alternarStatus(d.id, d.status, d.origin, d)}
+                          disabled={d.origin === "parcela"}
+                          className={cn(d.origin === "parcela" && "cursor-not-allowed opacity-60")}
+                        >
                           <StatusBadge status={d.status} className="cursor-pointer hover:opacity-80 transition-opacity" />
                         </button>
                       </TableCell>
                     </TableRow>
                   ))}
                   
-                  {/* Linha de Parcelas */}
-                  {resumo && resumo.totalParcelas > 0 && (
-                    <TableRow className="bg-parcela/5 hover:bg-parcela/10 font-bold border-t-2">
-                      <TableCell className="text-xs text-parcela">Mês Todo</TableCell>
-                      <TableCell className="text-parcela">Parcelas do Mês</TableCell>
-                      <TableCell className="text-parcela">Automático</TableCell>
-                      <TableCell className="text-right text-parcela">
-                        {formatarBRL(resumo.totalParcelas)}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <StatusBadge status="pendente" className="bg-parcela/20 text-parcela border border-parcela/30" />
-                      </TableCell>
-                    </TableRow>
-                  )}
 
                   {despesas.length === 0 && resumo?.totalParcelas === 0 && (
                     <TableRow>
