@@ -8,7 +8,12 @@ import {
   BarChart3,
   Calendar as CalendarIcon,
   AlertTriangle,
-  RefreshCcw
+  RefreshCcw,
+  Pencil,
+  Settings,
+  User,
+  Lock,
+  Mail
 } from "lucide-react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { 
@@ -33,6 +38,17 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { useDadosFinanceiros } from "@/hooks/use-dados-financeiros";
 import { PALETA_CATEGORIAS } from "@/lib/cores-categorias";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger 
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -53,6 +69,61 @@ function PaginaDashboard() {
   const [ano, setAno] = useState(new Date().getFullYear());
   const [mes, setMes] = useState(new Date().getMonth() + 1);
   
+  const [configAberto, setConfigAberto] = useState(false);
+  const [novoNome, setNovoNome] = useState("");
+  const [novoEmail, setNovoEmail] = useState("");
+  const [novaSenha, setNovaSenha] = useState("");
+  
+  const { data: userAuth } = useQuery({
+    queryKey: ["auth-user"],
+    queryFn: async () => {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error) throw error;
+      return user;
+    }
+  });
+
+  const { data: profile, isLoading: isLoadingProfile } = useQuery({
+    queryKey: ["profile", userAuth?.id],
+    enabled: !!userAuth?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userAuth!.id)
+        .single();
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  const updateProfileMutation = useMutation({
+    mutationFn: async (nome: string) => {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ nome_exibicao: nome, updated_at: new Date().toISOString() })
+        .eq("id", userAuth!.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["profile", userAuth?.id] });
+      toast.success("Perfil atualizado com sucesso!");
+    },
+    onError: () => toast.error("Erro ao atualizar nome.")
+  });
+
+  const updateAuthMutation = useMutation({
+    mutationFn: async ({ email, password }: { email?: string; password?: string }) => {
+      const { error } = await supabase.auth.updateUser({ email, password });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Dados de acesso atualizados. Verifique seu e-mail se alterou o endereço.");
+      setNovaSenha("");
+    },
+    onError: (err: any) => toast.error(err.message || "Erro ao atualizar dados de acesso.")
+  });
+
   const { data: resumo, isLoading, isError, error, refetch } = useDadosFinanceiros(mes, ano);
 
   // Buscar categorias separadamente para o alerta de reparo
@@ -189,7 +260,106 @@ function PaginaDashboard() {
       )}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard {ano}</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-3xl font-bold tracking-tight">
+              {profile?.nome_exibicao ? `Olá, ${profile.nome_exibicao}` : `Dashboard ${ano}`}
+            </h1>
+            <Dialog open={configAberto} onOpenChange={(open) => {
+              setConfigAberto(open);
+              if (open) {
+                setNovoNome(profile?.nome_exibicao || "");
+                setNovoEmail(userAuth?.email || "");
+              }
+            }}>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                  <Pencil className="h-4 w-4 text-muted-foreground" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Configurações de Perfil</DialogTitle>
+                  <DialogDescription>
+                    Atualize seu nome de exibição e credenciais de acesso.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="nome" className="flex items-center gap-2">
+                      <User className="h-4 w-4" /> Nome de Exibição
+                    </Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="nome"
+                        value={novoNome}
+                        onChange={(e) => setNovoNome(e.target.value)}
+                        placeholder="Seu nome"
+                      />
+                      <Button 
+                        size="sm"
+                        onClick={() => updateProfileMutation.mutate(novoNome)}
+                        disabled={updateProfileMutation.isPending}
+                      >
+                        Salvar
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div className="border-t pt-4 mt-2">
+                    <h4 className="text-sm font-medium mb-4 flex items-center gap-2">
+                      <Lock className="h-4 w-4" /> Segurança e Acesso
+                    </h4>
+                    
+                    <div className="grid gap-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="email" className="flex items-center gap-2">
+                          <Mail className="h-3 w-3" /> E-mail
+                        </Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          value={novoEmail}
+                          onChange={(e) => setNovoEmail(e.target.value)}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="senha">Nova Senha</Label>
+                        <Input
+                          id="senha"
+                          type="password"
+                          value={novaSenha}
+                          onChange={(e) => setNovaSenha(e.target.value)}
+                          placeholder="Mínimo 6 caracteres"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setConfigAberto(false)}
+                  >
+                    Fechar
+                  </Button>
+                  <Button 
+                    onClick={() => {
+                      const updates: any = {};
+                      if (novoEmail !== userAuth?.email) updates.email = novoEmail;
+                      if (novaSenha) updates.password = novaSenha;
+                      if (Object.keys(updates).length > 0) {
+                        updateAuthMutation.mutate(updates);
+                      }
+                    }}
+                    disabled={updateAuthMutation.isPending}
+                  >
+                    {updateAuthMutation.isPending ? "Salvando..." : "Atualizar Acesso"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+            {profile?.nome_exibicao && <span className="text-3xl font-bold tracking-tight text-muted-foreground ml-2">{ano}</span>}
+          </div>
           <p className="text-muted-foreground">
             Visão geral consolidada do mês selecionado.
           </p>
