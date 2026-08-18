@@ -279,9 +279,8 @@ function PaginaDashboard() {
                     ))}
                   </Pie>
                   <Tooltip 
-                    formatter={(value: any, name: string, props: any) => [formatarBRL(Number(value)), name]}
+                    formatter={(value: any) => formatarBRL(Number(value))}
                     contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                    itemStyle={{ color: 'inherit' }}
                   />
                   <Legend 
                     formatter={(value, entry: any) => (
