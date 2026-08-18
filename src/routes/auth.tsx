@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Loader2, User, Lock, Eye, EyeOff, ShieldCheck, TrendingUp } from "lucide-react";
+import heroAsset from "@/assets/login-hero.jpeg.asset.json";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
