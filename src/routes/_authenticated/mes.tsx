@@ -243,7 +243,17 @@ function PaginaMes() {
   );
   
   const despesas = useMemo(() => 
-    resumo?.lancamentosCompletos.filter(l => l.tipo === "despesa") || [], 
+    (resumo?.lancamentosCompletos.filter(l => l.tipo === "despesa") || [])
+      .sort((a, b) => {
+        // Ordenar por data, mas colocar parcelas no fim ou manter ordem estável
+        const dataA = new Date(a.data).getTime();
+        const dataB = new Date(b.data).getTime();
+        if (dataA !== dataB) return dataA - dataB;
+        // Se mesma data, priorizar parcelas por último
+        if (a.origin === "parcela" && b.origin !== "parcela") return 1;
+        if (a.origin !== "parcela" && b.origin === "parcela") return -1;
+        return 0;
+      }), 
     [resumo]
   );
 
