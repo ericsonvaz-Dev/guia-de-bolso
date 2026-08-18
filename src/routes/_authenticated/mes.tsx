@@ -599,7 +599,7 @@ function PaginaMes() {
                         dataKey="value"
                       >
                         {dadosGrafico.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
+                          <Cell key={`cell-${index}`} fill={entry.color || "#888888"} />
                         ))}
                       </Pie>
                       <RechartsTooltip 
