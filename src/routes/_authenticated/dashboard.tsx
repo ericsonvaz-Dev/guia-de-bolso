@@ -7,9 +7,10 @@ import {
   PieChart, 
   BarChart3,
   Calendar as CalendarIcon,
-  AlertTriangle
+  AlertTriangle,
+  RefreshCcw
 } from "lucide-react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { 
   Bar, 
   BarChart, 
@@ -27,10 +28,10 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { formatarBRL, MESES_PT_BR } from "@/lib/formatadores";
 import { toast } from "sonner";
-import { processarResumoFinanceiro } from "@/lib/financas";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { useDadosFinanceiros } from "@/hooks/use-dados-financeiros";
 
 const PALETA_CATEGORIAS = [
   "#1F4E78", "#C62828", "#2E7D32", "#F9A825", "#6A1B9A",
@@ -44,7 +45,7 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
       { title: "Dashboard | Controle Financeiro Pessoal" },
       {
         name: "description",
-        content: "Visão geral do seu ano financeiro: receitas, despesas e saldo.",
+        content: "Visão geral do seu desempenho financeiro mensal.",
       },
     ],
   }),
@@ -56,62 +57,50 @@ function PaginaDashboard() {
   const [ano, setAno] = useState(new Date().getFullYear());
   const [mes, setMes] = useState(new Date().getMonth() + 1);
   
+  const { data: resumo, isLoading, isError, error, refetch } = useDadosFinanceiros(mes, ano);
+
+  // Buscar categorias separadamente para o alerta de reparo
+  const { data: categorias } = useQuery({
+    queryKey: ["categorias"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("categorias").select("*");
+      if (error) throw error;
+      return data || [];
+    }
+  });
+
   const fixCategoriesMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.rpc("fix_user_categories");
+      const { error } = await supabase.rpc("fix_user_categories", {});
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["dados-financeiros", ano, mes] });
+      queryClient.invalidateQueries({ queryKey: ["categorias"] });
       toast.success("Categorias padrão restauradas!");
     },
     onError: (error: any) => {
       toast.error("Erro ao processar categorias. Tente novamente.");
     },
   });
+
   const anosDisponiveis = useMemo(() => {
     const atual = new Date().getFullYear();
     return Array.from({ length: 5 }, (_, i) => atual - 2 + i);
   }, []);
 
-  const { data: financeiro, isLoading } = useQuery({
-    queryKey: ["dados-financeiros", ano, mes],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Não autenticado");
-
-      const [
-        { data: lancamentos },
-        { data: contasFixas },
-        { data: parcelas },
-        { data: categorias }
-      ] = await Promise.all([
-        supabase.from("lancamentos").select("*").eq("ano", ano).eq("mes", mes),
-        supabase.from("contas_fixas").select("*").eq("ativo", true),
-        supabase.from("parcelas").select("*").eq("status", "ativo"),
-        supabase.from("categorias").select("*")
-      ]);
-
-      const resumo = processarResumoFinanceiro(
-        lancamentos || [],
-        contasFixas || [],
-        parcelas || [],
-        categorias || [],
-        mes,
-        ano
-      );
-
-      return {
-        resumo,
-        categorias: categorias || []
-      };
-    }
-  });
-
   const stats = useMemo(() => {
-    if (!financeiro?.resumo) return null;
+    if (!resumo) return {
+      totalReceitas: 0,
+      totalDespesas: 0,
+      saldo: 0,
+      percentGasto: 0,
+      pieData: [],
+      pagas: 0,
+      pendentes: 0
+    };
     
-    const { totalReceitas, totalDespesas, saldo, percentGasto, gastosPorCategoria } = financeiro.resumo;
+    const { totalReceitas, totalDespesas, saldo, percentGasto, gastosPorCategoria, pagas, pendentes } = resumo;
     
     const pieData = Object.values(gastosPorCategoria || {})
       .filter(g => g.total > 0)
@@ -126,10 +115,19 @@ function PaginaDashboard() {
       totalDespesas,
       saldo,
       percentGasto,
-      pieData
+      pieData,
+      pagas,
+      pendentes
     };
-  }, [financeiro]);
+  }, [resumo]);
 
+  const percentGastoDisplay = useMemo(() => {
+    const { totalReceitas, percentGasto } = stats;
+    if (totalReceitas === 0) return "—";
+    const percent = percentGasto * 100;
+    if (percent > 100) return "100%+";
+    return `${percent.toFixed(1)}%`;
+  }, [stats]);
 
   if (isLoading) {
     return (
@@ -145,9 +143,36 @@ function PaginaDashboard() {
     );
   }
 
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+        <Card className="max-w-md w-full">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Erro ao carregar dados
+            </CardTitle>
+            <CardDescription>
+              Não foi possível carregar as informações financeiras.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              {error instanceof Error ? error.message : "Ocorreu um erro inesperado no servidor."}
+            </p>
+            <Button onClick={() => refetch()} className="w-full gap-2">
+              <RefreshCcw className="h-4 w-4" />
+              Tentar novamente
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      {financeiro && financeiro.categorias.length === 0 && (
+      {categorias && categorias.length === 0 && (
         <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <AlertTriangle className="h-5 w-5 text-amber-500" />
@@ -211,7 +236,7 @@ function PaginaDashboard() {
             <TrendingUp className="h-4 w-4 text-[#2E7D32]" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-[#2E7D32]">{formatarBRL(stats?.totalReceitas || 0)}</div>
+            <div className="text-2xl font-bold text-[#2E7D32]">{formatarBRL(stats.totalReceitas)}</div>
             <p className="text-xs text-muted-foreground">Total de entradas</p>
           </CardContent>
         </Card>
@@ -221,7 +246,7 @@ function PaginaDashboard() {
             <TrendingDown className="h-4 w-4 text-[#C62828]" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-[#C62828]">{formatarBRL(stats?.totalDespesas || 0)}</div>
+            <div className="text-2xl font-bold text-[#C62828]">{formatarBRL(stats.totalDespesas)}</div>
             <p className="text-xs text-muted-foreground">Incluindo fixas e parcelas</p>
           </CardContent>
         </Card>
@@ -231,8 +256,8 @@ function PaginaDashboard() {
             <DollarSign className="h-4 w-4 text-[#1F4E78]" />
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${(stats?.saldo || 0) >= 0 ? 'text-[#1F4E78]' : 'text-[#C62828]'}`}>
-              {formatarBRL(stats?.saldo || 0)}
+            <div className={`text-2xl font-bold ${stats.saldo >= 0 ? 'text-[#1F4E78]' : 'text-[#C62828]'}`}>
+              {formatarBRL(stats.saldo)}
             </div>
             <p className="text-xs text-muted-foreground">Resultado líquido mensal</p>
           </CardContent>
@@ -244,7 +269,7 @@ function PaginaDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-primary">
-              {(stats?.percentGasto || 0) > 10 ? ">1000%" : `${((stats?.percentGasto || 0) * 100).toFixed(1)}%`}
+              {percentGastoDisplay}
             </div>
             <p className="text-xs text-muted-foreground">Da renda do mês</p>
           </CardContent>
@@ -261,7 +286,7 @@ function PaginaDashboard() {
             <CardDescription>Onde seu dinheiro foi no mês.</CardDescription>
           </CardHeader>
           <CardContent className="h-[350px]">
-            {stats?.pieData && stats.pieData.length > 0 ? (
+            {stats.pieData && stats.pieData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <RechartsPieChart>
                   <Pie
@@ -274,7 +299,7 @@ function PaginaDashboard() {
                     dataKey="total"
                     nameKey="nome"
                   >
-                    {stats.pieData.map((entry: any, index) => (
+                    {stats.pieData.map((entry: any, index: number) => (
                       <Cell key={`cell-${index}`} fill={entry.corGrafico} />
                     ))}
                   </Pie>
@@ -308,8 +333,8 @@ function PaginaDashboard() {
           <CardContent className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={[
-                { name: 'Pagas', valor: financeiro?.resumo?.pagas || 0, fill: '#2E7D32' },
-                { name: 'Pendentes', valor: financeiro?.resumo?.pendentes || 0, fill: '#F9A825' }
+                { name: 'Pagas', valor: stats.pagas, fill: '#2E7D32' },
+                { name: 'Pendentes', valor: stats.pendentes, fill: '#F9A825' }
               ]}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} />
@@ -345,27 +370,27 @@ function PaginaDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {financeiro?.resumo && (
+                {resumo && (
                   <tr className="hover:bg-muted/50 transition-colors font-medium">
                     <td className="py-3 px-2">{MESES_PT_BR[mes - 1]}</td>
-                    <td className="py-3 px-2 text-right text-[#2E7D32]">{formatarBRL(financeiro.resumo.totalReceitas)}</td>
-                    <td className="py-3 px-2 text-right text-[#C62828]">{formatarBRL(financeiro.resumo.totalDespesas)}</td>
-                    <td className={`py-3 px-2 text-right ${financeiro.resumo.saldo >= 0 ? 'text-[#1F4E78]' : 'text-[#C62828]'}`}>
-                      {formatarBRL(financeiro.resumo.saldo)}
+                    <td className="py-3 px-2 text-right text-[#2E7D32]">{formatarBRL(stats.totalReceitas)}</td>
+                    <td className="py-3 px-2 text-right text-[#C62828]">{formatarBRL(stats.totalDespesas)}</td>
+                    <td className={`py-3 px-2 text-right ${stats.saldo >= 0 ? 'text-[#1F4E78]' : 'text-[#C62828]'}`}>
+                      {formatarBRL(stats.saldo)}
                     </td>
                     <td className="py-3 px-2 text-center">
                       <div className="flex items-center justify-center gap-2">
                         <div className="w-16 h-2 bg-muted rounded-full overflow-hidden">
                           <div 
-                            className={`h-full ${financeiro.resumo.percentGasto > 0.9 ? 'bg-[#C62828]' : 'bg-[#1F4E78]'}`} 
-                            style={{ width: `${Math.min(financeiro.resumo.percentGasto * 100, 100)}%` }}
+                            className={`h-full ${resumo.percentGasto > 0.9 ? 'bg-[#C62828]' : 'bg-[#1F4E78]'}`} 
+                            style={{ width: `${Math.min(resumo.percentGasto * 100, 100)}%` }}
                           />
                         </div>
-                        <span className="text-[10px] w-8">{(financeiro.resumo.percentGasto * 100).toFixed(0)}%</span>
+                        <span className="text-[10px] w-8">{(resumo.percentGasto * 100).toFixed(0)}%</span>
                       </div>
                     </td>
-                    <td className="py-3 px-2 text-right text-[#2E7D32]">{formatarBRL(financeiro.resumo.pagas)}</td>
-                    <td className="py-3 px-2 text-right text-[#F9A825]">{formatarBRL(financeiro.resumo.pendentes)}</td>
+                    <td className="py-3 px-2 text-right text-[#2E7D32]">{formatarBRL(stats.pagas)}</td>
+                    <td className="py-3 px-2 text-right text-[#F9A825]">{formatarBRL(stats.pendentes)}</td>
                   </tr>
                 )}
               </tbody>

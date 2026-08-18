@@ -1,4 +1,5 @@
 import { Tables, Enums } from "@/integrations/supabase/types";
+import { paraNumero } from "./formatadores";
 
 export type Lancamento = Tables<"lancamentos">;
 export type ContaFixa = Tables<"contas_fixas">;
@@ -126,9 +127,21 @@ export function processarResumoFinanceiro(
   // 3. Processar Parcelas Incidentes
   parcelas.forEach((p) => {
     if (calcularParcelaIncidente(p, mes, ano)) {
-      const valor = Number(p.valor_parcela);
+      const valor = paraNumero(p.valor_parcela);
       totalParcelas += valor;
-      pendentes += valor;
+      
+      // Verifica se existe um lançamento manual referente a esta parcela para este mês já pago
+      // Pela regra do app, se o usuário pagar na aba Mês, criamos/atualizamos um lançamento real
+      const lancamentoPago = lancamentos.find(l => 
+        l.status === "pago" && 
+        (l.descricao ?? "").toLowerCase().includes((p.descricao ?? "").toLowerCase())
+      );
+
+      if (lancamentoPago) {
+        pagas += valor;
+      } else {
+        pendentes += valor;
+      }
 
       if (p.categoria_id) {
         const cat = gastosPorCategoria[p.categoria_id];
@@ -139,10 +152,10 @@ export function processarResumoFinanceiro(
       lancamentosCompletos.push({
         id: `parcela-${p.id}`,
         user_id: p.user_id,
-        descricao: `Parcela: ${p.descricao}`,
+        descricao: `Parcela: ${p.descricao ?? "Sem descrição"}`,
         valor: p.valor_parcela,
         tipo: "despesa",
-        status: "pendente",
+        status: lancamentoPago ? "pago" : "pendente",
         categoria_id: p.categoria_id,
         data: `${ano}-${String(mes).padStart(2, '0')}-01`, // Data simbólica (início do mês)
         mes,
