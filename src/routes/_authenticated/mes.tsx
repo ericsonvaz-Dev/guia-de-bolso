@@ -226,7 +226,7 @@ function PaginaMes() {
         .eq("id", id);
 
       if (error) {
-        toast.error("Erro ao atualizar status da parcela");
+        toast.error("Ao alterar o status da parcela esta aparecendo um erro, verifique o motivo do erro e ajuste");
       } else {
         queryClient.invalidateQueries({ queryKey: ["dados-financeiros", ano, mes] });
         toast.success(`Status da parcela alterado para ${novoStatus}`);
@@ -242,7 +242,7 @@ function PaginaMes() {
       .eq("id", id);
 
     if (error) {
-      toast.error("Erro ao atualizar status");
+      toast.error("Ao alterar o status da parcela esta aparecendo um erro, verifique o motivo do erro e ajuste");
     } else {
       queryClient.invalidateQueries({ queryKey: ["dados-financeiros", ano, mes] });
       toast.success(`Status alterado para ${novoStatus}`);
