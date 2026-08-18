@@ -404,7 +404,12 @@ function PaginaMes() {
                 <TrendingDown className="w-5 h-5 text-negativo" />
                 <CardTitle className="text-negativo uppercase tracking-wider text-sm font-bold">Despesas</CardTitle>
               </div>
-              <Button size="sm" variant="outline" className="h-8 gap-1 text-negativo border-negativo/20 hover:bg-negativo/10">
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="h-8 gap-1 text-negativo border-negativo/20 hover:bg-negativo/10"
+                onClick={() => openNovoLancamento("despesa")}
+              >
                 <Plus className="w-4 h-4" /> Nova Despesa
               </Button>
             </CardHeader>
