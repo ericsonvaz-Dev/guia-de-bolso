@@ -1,21 +1,18 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Loader2, Wallet } from "lucide-react";
+import { Loader2, User, Lock, Eye, EyeOff, ShieldCheck, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/auth")({
-  // A sessão do Supabase vive no localStorage; renderizar só no cliente evita
-  // divergência de hidratação entre o HTML do servidor e o estado real.
   ssr: false,
   head: () => ({
-
     meta: [
       { title: "Entrar | Controle Financeiro Pessoal" },
       {
@@ -33,7 +30,6 @@ export const Route = createFileRoute("/auth")({
   component: PaginaAuth,
 });
 
-/** Traduz as mensagens de erro do Supabase Auth para pt-BR. */
 function traduzirErro(mensagem: string): string {
   const m = mensagem.toLowerCase();
   if (m.includes("invalid login credentials")) return "E-mail ou senha incorretos.";
@@ -54,8 +50,9 @@ function PaginaAuth() {
   const [senha, setSenha] = useState("");
   const [carregando, setCarregando] = useState(false);
   const [aguardandoConfirmacao, setAguardandoConfirmacao] = useState(false);
+  const [mostrarSenha, setMostrarSenha] = useState(false);
+  const [modo, setModo] = useState<"login" | "cadastro" | "reset">("login");
 
-  // Se já existe sessão, vai direto para o Dashboard.
   useEffect(() => {
     let ativo = true;
     supabase.auth.getSession().then(({ data }) => {
@@ -119,123 +116,214 @@ function PaginaAuth() {
     }
   }
 
+  async function resetSenha(evento: React.FormEvent) {
+    evento.preventDefault();
+    setCarregando(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth?reset=true`,
+      });
+      if (error) {
+        toast.error(traduzirErro(error.message));
+        return;
+      }
+      toast.success("E-mail de recuperação enviado!");
+      setModo("login");
+    } catch (erro) {
+      console.error(erro);
+      toast.error("Erro ao enviar e-mail de recuperação.");
+    } finally {
+      setCarregando(false);
+    }
+  }
+
+  if (aguardandoConfirmacao) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#FBEEF0] px-4">
+        <Card className="w-full max-w-md rounded-2xl border-none shadow-xl">
+          <CardContent className="flex flex-col items-center p-8 text-center">
+            <div className="mb-6 rounded-full bg-green-100 p-3 text-green-600">
+              <ShieldCheck className="size-12" />
+            </div>
+            <h2 className="mb-2 text-2xl font-bold text-[#1a1a2e]">Confirme seu e-mail</h2>
+            <p className="mb-8 text-muted-foreground">
+              Enviamos um link de confirmação para <strong>{email}</strong>. 
+              Após confirmar, você poderá acessar sua conta.
+            </p>
+            <Button
+              className="w-full rounded-xl bg-[#6D4AE0] hover:bg-[#5a3bb8]"
+              onClick={() => setAguardandoConfirmacao(false)}
+            >
+              Voltar ao login
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/40 px-4 py-10">
-      <div className="w-full max-w-md">
-        <div className="mb-6 flex flex-col items-center gap-3 text-center">
-          <span className="flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-            <Wallet className="size-6" />
-          </span>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            Controle Financeiro Pessoal
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Organize receitas, despesas, contas fixas e parcelas em reais.
-          </p>
+    <div className="grid min-h-screen lg:grid-cols-2">
+      {/* COLUNA ESQUERDA: Imagem */}
+      <div className="hidden items-center justify-center bg-[#FBEEF0] p-12 lg:flex">
+        <div className="relative h-full w-full max-w-2xl overflow-hidden rounded-3xl">
+          <img
+            src="/login-hero.png"
+            alt="Ilustração Controle Financeiro"
+            className="h-full w-full object-contain"
+            onError={(e) => {
+              // Fallback caso a imagem ainda não exista ou falhe
+              (e.target as HTMLImageElement).src = "https://placehold.co/800x800/FBEEF0/6D4AE0?text=Piggy+Bank+Hero";
+            }}
+          />
         </div>
+      </div>
 
-        {aguardandoConfirmacao ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>Confirme seu e-mail</CardTitle>
-              <CardDescription>
-                Enviamos um link de confirmação para <strong>{email}</strong>. Após confirmar,
-                volte aqui e faça login.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => setAguardandoConfirmacao(false)}
+      {/* COLUNA DIREITA: Formulário */}
+      <div className="flex items-center justify-center bg-[#FBEEF0] p-6 lg:bg-white lg:p-12">
+        <Card className="w-full max-w-[400px] border-none bg-white shadow-xl ring-1 ring-black/5 lg:shadow-2xl rounded-2xl overflow-hidden">
+          <CardContent className="p-8">
+            {/* Logo e Título */}
+            <div className="mb-8 flex flex-col items-center text-center">
+              <div className="mb-4 flex size-12 items-center justify-center rounded-2xl bg-white shadow-md">
+                <div className="relative">
+                  <TrendingUp className="size-7 text-[#2E7D32]" />
+                  <div className="absolute -right-1 -top-1 size-3 rounded-full bg-[#1F4E78]" />
+                </div>
+              </div>
+              <h1 className="text-2xl font-bold tracking-tight text-[#1a1a2e]">
+                Controle Financeiro
+              </h1>
+              <p className="mt-1 text-sm font-medium text-muted-foreground">
+                Organize · Acompanhe · Cresça
+              </p>
+            </div>
+
+            {/* Alternador de Modo */}
+            {modo !== "reset" && (
+              <div className="mb-6 flex rounded-xl bg-muted p-1">
+                <button
+                  onClick={() => setModo("login")}
+                  className={cn(
+                    "flex-1 rounded-lg py-2 text-sm font-medium transition-all",
+                    modo === "login" 
+                      ? "bg-white text-[#1a1a2e] shadow-sm" 
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Entrar
+                </button>
+                <button
+                  onClick={() => setModo("cadastro")}
+                  className={cn(
+                    "flex-1 rounded-lg py-2 text-sm font-medium transition-all",
+                    modo === "cadastro" 
+                      ? "bg-white text-[#1a1a2e] shadow-sm" 
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Criar conta
+                </button>
+              </div>
+            )}
+
+            {/* Formulários */}
+            <form 
+              onSubmit={modo === "login" ? entrar : modo === "cadastro" ? cadastrar : resetSenha} 
+              className="space-y-4"
+            >
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-semibold text-[#1a1a2e]">
+                  {modo === "reset" ? "Seu e-mail cadastrado" : "Usuário"}
+                </Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="voce@email.com"
+                    className="h-11 rounded-xl border-muted bg-white pl-10 focus-visible:ring-[#6D4AE0]"
+                  />
+                </div>
+              </div>
+
+              {modo !== "reset" && (
+                <div className="space-y-2">
+                  <Label htmlFor="senha" className="text-sm font-semibold text-[#1a1a2e]">
+                    Senha
+                  </Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="senha"
+                      type={mostrarSenha ? "text" : "password"}
+                      required
+                      value={senha}
+                      onChange={(e) => setSenha(e.target.value)}
+                      placeholder={modo === "cadastro" ? "Mínimo 6 caracteres" : "••••••••"}
+                      className="h-11 rounded-xl border-muted bg-white pl-10 pr-10 focus-visible:ring-[#6D4AE0]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setMostrarSenha(!mostrarSenha)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {mostrarSenha ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <Button 
+                type="submit" 
+                className="h-11 w-full rounded-xl bg-[#6D4AE0] font-semibold text-white transition-colors hover:bg-[#5a3bb8] disabled:opacity-70"
+                disabled={carregando}
               >
-                Voltar ao login
+                {carregando ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="size-4 animate-spin" />
+                    {modo === "login" ? "Entrando..." : modo === "cadastro" ? "Criando..." : "Enviando..."}
+                  </span>
+                ) : (
+                  modo === "login" ? "Entrar" : modo === "cadastro" ? "Criar conta" : "Recuperar Senha"
+                )}
               </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card>
-            <CardContent className="pt-6">
-              <Tabs defaultValue="login">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="login">Entrar</TabsTrigger>
-                  <TabsTrigger value="cadastro">Criar conta</TabsTrigger>
-                </TabsList>
 
-                <TabsContent value="login">
-                  <form onSubmit={entrar} className="space-y-4 pt-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="email-login">E-mail</Label>
-                      <Input
-                        id="email-login"
-                        type="email"
-                        autoComplete="email"
-                        required
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="voce@email.com"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="senha-login">Senha</Label>
-                      <Input
-                        id="senha-login"
-                        type="password"
-                        autoComplete="current-password"
-                        required
-                        value={senha}
-                        onChange={(e) => setSenha(e.target.value)}
-                        placeholder="••••••••"
-                      />
-                    </div>
-                    <Button type="submit" className="w-full" disabled={carregando}>
-                      {carregando && <Loader2 className="mr-2 size-4 animate-spin" />}
-                      Entrar
-                    </Button>
-                  </form>
-                </TabsContent>
+              {modo === "login" && (
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={() => setModo("reset")}
+                    className="text-xs font-semibold text-[#6D4AE0] hover:underline"
+                  >
+                    Esqueceu a senha?
+                  </button>
+                </div>
+              )}
 
-                <TabsContent value="cadastro">
-                  <form onSubmit={cadastrar} className="space-y-4 pt-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="email-cadastro">E-mail</Label>
-                      <Input
-                        id="email-cadastro"
-                        type="email"
-                        autoComplete="email"
-                        required
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="voce@email.com"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="senha-cadastro">Senha</Label>
-                      <Input
-                        id="senha-cadastro"
-                        type="password"
-                        autoComplete="new-password"
-                        required
-                        minLength={6}
-                        value={senha}
-                        onChange={(e) => setSenha(e.target.value)}
-                        placeholder="Mínimo de 6 caracteres"
-                      />
-                    </div>
-                    <Button type="submit" className="w-full" disabled={carregando}>
-                      {carregando && <Loader2 className="mr-2 size-4 animate-spin" />}
-                      Criar conta
-                    </Button>
-                    <p className="text-xs text-muted-foreground">
-                      Ao criar a conta, suas categorias padrão e as 7 contas fixas são
-                      configuradas automaticamente.
-                    </p>
-                  </form>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
-        )}
+              {modo === "reset" && (
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={() => setModo("login")}
+                    className="text-xs font-semibold text-[#6D4AE0] hover:underline"
+                  >
+                    Voltar ao login
+                  </button>
+                </div>
+              )}
+            </form>
+
+            {/* Rodapé do Card */}
+            <div className="mt-8 flex items-center justify-center gap-2 border-t pt-6 text-[10px] text-muted-foreground uppercase tracking-widest">
+              <ShieldCheck className="size-3" />
+              <span>Seus dados protegidos</span>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

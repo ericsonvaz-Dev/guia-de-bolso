@@ -76,6 +76,10 @@
 
 
 :root {
+  --brand-purple: #6D4AE0;
+  --brand-pink-light: #FBEEF0;
+  --brand-dark: #1a1a2e;
+
   --radius: 0.625rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.129 0.042 264.695);
