@@ -109,11 +109,11 @@ function PaginaDashboard() {
   });
 
   const stats = useMemo(() => {
-    if (!financeiro) return null;
+    if (!financeiro?.resumo) return null;
     
     const { totalReceitas, totalDespesas, saldo, percentGasto, gastosPorCategoria } = financeiro.resumo;
     
-    const pieData = Object.values(gastosPorCategoria)
+    const pieData = Object.values(gastosPorCategoria || {})
       .filter(g => g.total > 0)
       .sort((a, b) => b.total - a.total)
       .map((item, index) => ({
@@ -308,8 +308,8 @@ function PaginaDashboard() {
           <CardContent className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={[
-                { name: 'Pagas', valor: financeiro?.resumo.pagas || 0, fill: '#2E7D32' },
-                { name: 'Pendentes', valor: financeiro?.resumo.pendentes || 0, fill: '#F9A825' }
+                { name: 'Pagas', valor: financeiro?.resumo?.pagas || 0, fill: '#2E7D32' },
+                { name: 'Pendentes', valor: financeiro?.resumo?.pendentes || 0, fill: '#F9A825' }
               ]}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} />
@@ -345,7 +345,7 @@ function PaginaDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {financeiro && (
+                {financeiro?.resumo && (
                   <tr className="hover:bg-muted/50 transition-colors font-medium">
                     <td className="py-3 px-2">{MESES_PT_BR[mes - 1]}</td>
                     <td className="py-3 px-2 text-right text-[#2E7D32]">{formatarBRL(financeiro.resumo.totalReceitas)}</td>
