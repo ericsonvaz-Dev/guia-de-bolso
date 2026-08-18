@@ -141,6 +141,39 @@ export type Database = {
           },
         ]
       }
+      pagamentos_ocorrencia: {
+        Row: {
+          ano: number
+          created_at: string
+          id: string
+          mes: number
+          origem: string
+          origem_id: string
+          pago: boolean | null
+          user_id: string
+        }
+        Insert: {
+          ano: number
+          created_at?: string
+          id?: string
+          mes: number
+          origem: string
+          origem_id: string
+          pago?: boolean | null
+          user_id: string
+        }
+        Update: {
+          ano?: number
+          created_at?: string
+          id?: string
+          mes?: number
+          origem?: string
+          origem_id?: string
+          pago?: boolean | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       parcelas: {
         Row: {
           ano_inicio: number
