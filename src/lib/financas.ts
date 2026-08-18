@@ -132,8 +132,23 @@ export function processarResumoFinanceiro(
         if (cat) cat.total += valor;
       }
       
-      // As parcelas são exibidas como um total na tela, mas poderíamos opcionalmente 
-      // adicioná-las aqui se quiséssemos detalhamento. O requisito pede "Linha Parcelas do Mês".
+      // Adicionar parcelas individualmente para exibição detalhada
+      lancamentosCompletos.push({
+        id: `parcela-${p.id}`,
+        user_id: p.user_id,
+        descricao: `Parcela: ${p.descricao}`,
+        valor: p.valor_parcela,
+        tipo: "despesa",
+        status: "pendente",
+        categoria_id: p.categoria_id,
+        data: `${ano}-${String(mes).padStart(2, '0')}-01`, // Data simbólica (início do mês)
+        mes,
+        ano,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        virtual: true,
+        origin: "parcela"
+      });
     }
   });
 
