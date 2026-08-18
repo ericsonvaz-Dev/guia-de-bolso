@@ -218,7 +218,19 @@ function PaginaMes() {
     }
 
     if (origin === "parcela") {
-      toast.info("Para dar baixa em parcelas, utilize a aba de Parcelas ou registre um lançamento manual.");
+      const novoStatus = statusAtual === "pago" ? "pendente" : "pago";
+      
+      const { error } = await supabase
+        .from("lancamentos")
+        .update({ status: novoStatus })
+        .eq("id", id);
+
+      if (error) {
+        toast.error("Erro ao atualizar status da parcela");
+      } else {
+        queryClient.invalidateQueries({ queryKey: ["dados-financeiros", ano, mes] });
+        toast.success(`Status da parcela alterado para ${novoStatus}`);
+      }
       return;
     }
 
@@ -461,8 +473,7 @@ function PaginaMes() {
                       <TableCell className="text-center">
                         <button 
                           onClick={() => alternarStatus(d.id, d.status, d.origin, d)}
-                          disabled={d.origin === "parcela"}
-                          className={cn(d.origin === "parcela" && "cursor-not-allowed opacity-60")}
+                          className={cn("cursor-pointer")}
                         >
                           <StatusBadge status={d.status} className="cursor-pointer hover:opacity-80 transition-opacity" />
                         </button>
