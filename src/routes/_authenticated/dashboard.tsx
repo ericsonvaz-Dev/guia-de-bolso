@@ -114,10 +114,10 @@ function PaginaDashboard() {
 
   const updateAuthMutation = useMutation({
     mutationFn: async ({ email, password }: { email?: string; password?: string }) => {
-      const { error } = await supabase.auth.updateUser({ 
-        email: email || undefined, 
-        password: password || undefined 
-      });
+      const attributes: any = {};
+      if (email) attributes.email = email;
+      if (password) attributes.password = password;
+      const { error } = await supabase.auth.updateUser(attributes);
       if (error) throw error;
     },
     onSuccess: () => {
