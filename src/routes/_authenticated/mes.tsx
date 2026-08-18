@@ -473,8 +473,8 @@ function PaginaMes() {
                       <TableCell className="text-center">
                         <button 
                           onClick={() => alternarStatus(d.id, d.status, d.origin, d)}
-                          disabled={d.origin === "parcela"}
-                          className={cn(d.origin === "parcela" && "cursor-not-allowed opacity-60")}
+                          disabled={false}
+                          className={cn("cursor-pointer")}
                         >
                           <StatusBadge status={d.status} className="cursor-pointer hover:opacity-80 transition-opacity" />
                         </button>
