@@ -346,7 +346,12 @@ function PaginaMes() {
                 <TrendingUp className="w-5 h-5 text-receita" />
                 <CardTitle className="text-receita uppercase tracking-wider text-sm font-bold">Receitas</CardTitle>
               </div>
-              <Button size="sm" variant="outline" className="h-8 gap-1 text-receita border-receita/20 hover:bg-receita/10">
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="h-8 gap-1 text-receita border-receita/20 hover:bg-receita/10"
+                onClick={() => openNovoLancamento("receita")}
+              >
                 <Plus className="w-4 h-4" /> Nova Receita
               </Button>
             </CardHeader>
