@@ -121,43 +121,6 @@ function PaginaDashboard() {
     };
   }, [financeiro]);
 
-  const stats = useMemo(() => {
-    if (!dadosAnuais) return null;
-    
-    const totalReceitas = dadosAnuais.resumoPorMes.reduce((acc, m) => acc + m.totalReceitas, 0);
-    const totalDespesas = dadosAnuais.resumoPorMes.reduce((acc, m) => acc + m.totalDespesas, 0);
-    const saldo = totalReceitas - totalDespesas;
-    
-    // Média de gasto da renda (apenas meses com receita > 0)
-    const mesesComReceita = dadosAnuais.resumoPorMes.filter(m => m.totalReceitas > 0);
-    const percentMedioGasto = mesesComReceita.length > 0
-      ? mesesComReceita.reduce((acc, m) => acc + m.percentGasto, 0) / mesesComReceita.length
-      : 0;
-    
-    // Gastos por categoria (consolidado ano)
-    const gastosCategoria: Record<string, { nome: string; total: number; cor: string }> = {};
-    dadosAnuais.resumoPorMes.forEach(m => {
-      Object.entries(m.gastosPorCategoria).forEach(([id, data]) => {
-        if (!gastosCategoria[id]) {
-          gastosCategoria[id] = { ...data };
-        } else {
-          gastosCategoria[id].total += data.total;
-        }
-      });
-    });
-
-    const pieData = Object.values(gastosCategoria)
-      .filter(g => g.total > 0)
-      .sort((a, b) => b.total - a.total);
-
-    return {
-      totalReceitas,
-      totalDespesas,
-      saldo,
-      percentMedioGasto,
-      pieData
-    };
-  }, [dadosAnuais]);
 
   if (isLoading) {
     return (
