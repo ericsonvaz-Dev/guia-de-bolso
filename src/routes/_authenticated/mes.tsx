@@ -250,12 +250,12 @@ function PaginaMes() {
   };
 
   const receitas = useMemo(() => 
-    resumo?.lancamentosCompletos.filter(l => l.tipo === "receita") || [], 
+    resumo?.lancamentosCompletos?.filter(l => l.tipo === "receita") || [], 
     [resumo]
   );
   
   const despesas = useMemo(() => 
-    (resumo?.lancamentosCompletos.filter(l => l.tipo === "despesa") || [])
+    (resumo?.lancamentosCompletos?.filter(l => l.tipo === "despesa") || [])
       .sort((a, b) => {
         // Ordenar por data, mas colocar parcelas no fim ou manter ordem estável
         const dataA = new Date(a.data).getTime();
