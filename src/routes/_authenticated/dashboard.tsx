@@ -138,7 +138,7 @@ function PaginaDashboard() {
 
   return (
     <div className="space-y-6">
-      {dadosAnuais && dadosAnuais.categorias.length === 0 && (
+      {financeiro && financeiro.categorias.length === 0 && (
         <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <AlertTriangle className="h-5 w-5 text-amber-500" />
@@ -161,39 +161,54 @@ function PaginaDashboard() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Dashboard {ano}</h1>
           <p className="text-muted-foreground">
-            Visão geral consolidada das suas finanças este ano.
+            Visão geral consolidada do mês selecionado.
           </p>
         </div>
         
-        <div className="flex items-center gap-2">
-          <label htmlFor="seletor-ano" className="text-sm font-medium">Ano:</label>
-          <select 
-            id="seletor-ano"
-            value={ano}
-            onChange={(e) => setAno(Number(e.target.value))}
-            className="h-9 w-28 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          >
-            {anosDisponiveis.map(a => (
-              <option key={a} value={a}>{a}</option>
-            ))}
-          </select>
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2">
+            <label htmlFor="seletor-mes" className="text-sm font-medium">Mês:</label>
+            <select 
+              id="seletor-mes"
+              value={mes}
+              onChange={(e) => setMes(Number(e.target.value))}
+              className="h-9 w-32 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              {MESES_PT_BR.map((m, i) => (
+                <option key={m} value={i + 1}>{m}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center gap-2">
+            <label htmlFor="seletor-ano" className="text-sm font-medium">Ano:</label>
+            <select 
+              id="seletor-ano"
+              value={ano}
+              onChange={(e) => setAno(Number(e.target.value))}
+              className="h-9 w-28 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              {anosDisponiveis.map(a => (
+                <option key={a} value={a}>{a}</option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Receita Total</CardTitle>
+            <CardTitle className="text-sm font-medium">Receita no Mês</CardTitle>
             <TrendingUp className="h-4 w-4 text-[#2E7D32]" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-[#2E7D32]">{formatarBRL(stats?.totalReceitas || 0)}</div>
-            <p className="text-xs text-muted-foreground">Acumulado do ano</p>
+            <p className="text-xs text-muted-foreground">Total de entradas</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Despesa Total</CardTitle>
+            <CardTitle className="text-sm font-medium">Despesa no Mês</CardTitle>
             <TrendingDown className="h-4 w-4 text-[#C62828]" />
           </CardHeader>
           <CardContent>
@@ -203,26 +218,26 @@ function PaginaDashboard() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Saldo Total</CardTitle>
+            <CardTitle className="text-sm font-medium">Saldo no Mês</CardTitle>
             <DollarSign className="h-4 w-4 text-[#1F4E78]" />
           </CardHeader>
           <CardContent>
             <div className={`text-2xl font-bold ${(stats?.saldo || 0) >= 0 ? 'text-[#1F4E78]' : 'text-[#C62828]'}`}>
               {formatarBRL(stats?.saldo || 0)}
             </div>
-            <p className="text-xs text-muted-foreground">Resultado líquido anual</p>
+            <p className="text-xs text-muted-foreground">Resultado líquido mensal</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">% Médio Gasto</CardTitle>
+            <CardTitle className="text-sm font-medium">% Gasto</CardTitle>
             <PieChart className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-primary">
-              {(stats?.percentMedioGasto || 0) > 10 ? ">1000%" : `${((stats?.percentMedioGasto || 0) * 100).toFixed(1)}%`}
+              {(stats?.percentGasto || 0) > 10 ? ">1000%" : `${((stats?.percentGasto || 0) * 100).toFixed(1)}%`}
             </div>
-            <p className="text-xs text-muted-foreground">Da renda média mensal</p>
+            <p className="text-xs text-muted-foreground">Da renda do mês</p>
           </CardContent>
         </Card>
       </div>
@@ -231,79 +246,62 @@ function PaginaDashboard() {
         <Card className="col-span-1">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-[#1F4E78]" />
-              Receitas vs Despesas
+              <PieChart className="h-5 w-5 text-[#1F4E78]" />
+              Distribuição de Gastos
             </CardTitle>
-            <CardDescription>Fluxo mensal de entradas e saídas.</CardDescription>
+            <CardDescription>Onde seu dinheiro foi no mês.</CardDescription>
           </CardHeader>
           <CardContent className="h-[350px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={dadosAnuais?.resumoPorMes || []}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis 
-                  dataKey="nomeMes" 
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 12 }}
-                />
-                <YAxis 
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 12 }}
-                  tickFormatter={(value) => `R$ ${value}`}
-                />
-                <Tooltip 
-                  formatter={(value: any) => formatarBRL(Number(value))}
-                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                />
-                <Legend />
-                <Bar name="Receitas" dataKey="totalReceitas" fill="#2E7D32" radius={[4, 4, 0, 0]} />
-                <Bar name="Despesas" dataKey="totalDespesas" fill="#C62828" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            {stats?.pieData && stats.pieData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <RechartsPieChart>
+                  <Pie
+                    data={stats.pieData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="total"
+                    nameKey="nome"
+                  >
+                    {stats.pieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.cor} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    formatter={(value: any) => formatarBRL(Number(value))}
+                  />
+                  <Legend />
+                </RechartsPieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                Sem despesas registradas neste mês.
+              </div>
+            )}
           </CardContent>
         </Card>
 
         <Card className="col-span-1">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-[#1F4E78]" />
-              Evolução do Saldo
+              <BarChart3 className="h-5 w-5 text-[#1F4E78]" />
+              Resumo por Status
             </CardTitle>
-            <CardDescription>Saldo líquido ao longo do ano.</CardDescription>
+            <CardDescription>Pagamentos efetuados vs pendentes.</CardDescription>
           </CardHeader>
           <CardContent className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={dadosAnuais?.resumoPorMes || []}>
+              <BarChart data={[
+                { name: 'Pagas', valor: financeiro?.resumo.pagas || 0, fill: '#2E7D32' },
+                { name: 'Pendentes', valor: financeiro?.resumo.pendentes || 0, fill: '#F9A825' }
+              ]}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis 
-                  dataKey="nomeMes" 
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 12 }}
-                />
-                <YAxis 
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 12 }}
-                  tickFormatter={(value) => `R$ ${value}`}
-                />
-                <Tooltip 
-                  formatter={(value: any) => formatarBRL(Number(value))}
-                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                />
-                <Bar 
-                  name="Saldo" 
-                  dataKey="saldo" 
-                  radius={[4, 4, 0, 0]}
-                >
-                  {(dadosAnuais?.resumoPorMes || []).map((entry, index) => (
-                    <Cell 
-                      key={`cell-${index}`} 
-                      fill={entry.saldo >= 0 ? "#1F4E78" : "#C62828"} 
-                    />
-                  ))}
-                </Bar>
+                <XAxis dataKey="name" axisLine={false} tickLine={false} />
+                <YAxis axisLine={false} tickLine={false} tickFormatter={(v) => `R$ ${v}`} />
+                <Tooltip formatter={(value: any) => formatarBRL(Number(value))} />
+                <Bar dataKey="valor" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -314,8 +312,9 @@ function PaginaDashboard() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <CalendarIcon className="h-5 w-5 text-[#1F4E78]" />
-            Tabela Anual Detalhada
+            Lançamentos do Mês
           </CardTitle>
+          <CardDescription>Lista detalhada de movimentações para {MESES_PT_BR[mes - 1]}.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -332,53 +331,35 @@ function PaginaDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {dadosAnuais?.resumoPorMes.map((m) => (
-                  <tr key={m.mes} className="hover:bg-muted/50 transition-colors">
-                    <td className="py-3 px-2 font-medium">{m.nomeMes}</td>
-                    <td className="py-3 px-2 text-right text-[#2E7D32]">{formatarBRL(m.totalReceitas)}</td>
-                    <td className="py-3 px-2 text-right text-[#C62828]">{formatarBRL(m.totalDespesas)}</td>
-                    <td className={`py-3 px-2 text-right font-medium ${m.saldo >= 0 ? 'text-[#1F4E78]' : 'text-[#C62828]'}`}>
-                      {formatarBRL(m.saldo)}
+                {financeiro && (
+                  <tr className="hover:bg-muted/50 transition-colors font-medium">
+                    <td className="py-3 px-2">{MESES_PT_BR[mes - 1]}</td>
+                    <td className="py-3 px-2 text-right text-[#2E7D32]">{formatarBRL(financeiro.resumo.totalReceitas)}</td>
+                    <td className="py-3 px-2 text-right text-[#C62828]">{formatarBRL(financeiro.resumo.totalDespesas)}</td>
+                    <td className={`py-3 px-2 text-right ${financeiro.resumo.saldo >= 0 ? 'text-[#1F4E78]' : 'text-[#C62828]'}`}>
+                      {formatarBRL(financeiro.resumo.saldo)}
                     </td>
                     <td className="py-3 px-2 text-center">
                       <div className="flex items-center justify-center gap-2">
                         <div className="w-16 h-2 bg-muted rounded-full overflow-hidden">
                           <div 
-                            className={`h-full ${m.percentGasto > 0.9 ? 'bg-[#C62828]' : 'bg-[#1F4E78]'}`} 
-                            style={{ width: `${Math.min(m.percentGasto * 100, 100)}%` }}
+                            className={`h-full ${financeiro.resumo.percentGasto > 0.9 ? 'bg-[#C62828]' : 'bg-[#1F4E78]'}`} 
+                            style={{ width: `${Math.min(financeiro.resumo.percentGasto * 100, 100)}%` }}
                           />
                         </div>
-                        <span className="text-[10px] w-8">{(m.percentGasto * 100).toFixed(0)}%</span>
+                        <span className="text-[10px] w-8">{(financeiro.resumo.percentGasto * 100).toFixed(0)}%</span>
                       </div>
                     </td>
-                    <td className="py-3 px-2 text-right text-[#2E7D32]">{formatarBRL(m.pagas)}</td>
-                    <td className="py-3 px-2 text-right text-[#F9A825]">{formatarBRL(m.pendentes)}</td>
+                    <td className="py-3 px-2 text-right text-[#2E7D32]">{formatarBRL(financeiro.resumo.pagas)}</td>
+                    <td className="py-3 px-2 text-right text-[#F9A825]">{formatarBRL(financeiro.resumo.pendentes)}</td>
                   </tr>
-                ))}
+                )}
               </tbody>
-              <tfoot className="bg-muted/30 font-bold border-t">
-                <tr>
-                  <td className="py-4 px-2">TOTAL/MÉDIA</td>
-                  <td className="py-4 px-2 text-right text-[#2E7D32]">{formatarBRL(stats?.totalReceitas || 0)}</td>
-                  <td className="py-4 px-2 text-right text-[#C62828]">{formatarBRL(stats?.totalDespesas || 0)}</td>
-                  <td className={`py-4 px-2 text-right ${(stats?.saldo || 0) >= 0 ? 'text-[#1F4E78]' : 'text-[#C62828]'}`}>
-                    {formatarBRL(stats?.saldo || 0)}
-                  </td>
-                  <td className="py-4 px-2 text-center text-primary">
-                    {((stats?.percentMedioGasto || 0) * 100).toFixed(1)}%
-                  </td>
-                  <td className="py-4 px-2 text-right text-[#2E7D32]">
-                    {formatarBRL(dadosAnuais?.resumoPorMes.reduce((acc, m) => acc + m.pagas, 0) || 0)}
-                  </td>
-                  <td className="py-4 px-2 text-right text-[#F9A825]">
-                    {formatarBRL(dadosAnuais?.resumoPorMes.reduce((acc, m) => acc + m.pendentes, 0) || 0)}
-                  </td>
-                </tr>
-              </tfoot>
             </table>
           </div>
         </CardContent>
       </Card>
     </div>
   );
+}
 }
