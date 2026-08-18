@@ -192,10 +192,6 @@ function PaginaAuth() {
                       {carregando && <Loader2 className="mr-2 size-4 animate-spin" />}
                       Entrar
                     </Button>
-                    <div className="mt-4 rounded-md bg-muted p-3 text-xs text-muted-foreground border border-border">
-                      <p className="font-semibold mb-1">Acesso Administrativo:</p>
-                      <p>Adicione o email <span className="font-mono text-primary">[ericson.vaz@gmail.com]</span> e senha <span className="font-mono text-primary">[ Andre9411 ]</span> como administrador</p>
-                    </div>
                   </form>
                 </TabsContent>
 
