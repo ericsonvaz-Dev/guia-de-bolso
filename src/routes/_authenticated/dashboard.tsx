@@ -32,12 +32,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { useDadosFinanceiros } from "@/hooks/use-dados-financeiros";
+import { PALETA_CATEGORIAS } from "@/lib/cores-categorias";
 
-const PALETA_CATEGORIAS = [
-  "#1F4E78", "#C62828", "#2E7D32", "#F9A825", "#6A1B9A",
-  "#00838F", "#EF6C00", "#AD1457", "#558B2F", "#4527A0",
-  "#00695C", "#D84315", "#5D4037", "#283593", "#9E9D24"
-];
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
