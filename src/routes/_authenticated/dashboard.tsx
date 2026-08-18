@@ -296,7 +296,7 @@ function PaginaDashboard() {
                     nameKey="nome"
                   >
                     {stats.pieData.map((entry: any, index: number) => (
-                      <Cell key={`cell-${index}`} fill={entry.corGrafico} />
+                      <Cell key={`cell-${index}`} fill={entry.corGrafico || "#888888"} />
                     ))}
                   </Pie>
                   <Tooltip 
