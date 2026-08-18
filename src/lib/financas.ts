@@ -70,18 +70,21 @@ export function processarResumoFinanceiro(
     const valor = Number(l.valor);
     if (l.tipo === "receita") {
       totalReceitas += valor;
+      if (l.status === "pago") {
+        pagas += valor;
+      }
+      // Receitas pendentes não somam em "pendentes" (que deve ser focado em obrigações/despesas)
     } else {
       despesasManuais += valor;
       if (l.categoria_id) {
         const cat = gastosPorCategoria[l.categoria_id];
         if (cat) cat.total += valor;
       }
-    }
-
-    if (l.status === "pago") {
-      pagas += valor;
-    } else {
-      pendentes += valor;
+      if (l.status === "pago") {
+        pagas += valor;
+      } else {
+        pendentes += valor;
+      }
     }
   });
 
