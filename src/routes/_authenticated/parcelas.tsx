@@ -454,7 +454,6 @@ function PaginaParcelas() {
                           <SelectContent>
                             <SelectItem value="ativo">Ativo</SelectItem>
                             <SelectItem value="quitado">Quitado</SelectItem>
-                            <SelectItem value="pago">Pago</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
