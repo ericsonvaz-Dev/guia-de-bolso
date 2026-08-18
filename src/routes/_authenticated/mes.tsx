@@ -499,7 +499,8 @@ function PaginaMes() {
                     <TableHead>Descrição</TableHead>
                     <TableHead>Categoria</TableHead>
                     <TableHead className="text-right">Valor</TableHead>
-                    <TableHead className="w-[100px] text-center">Status</TableHead>
+                    <TableHead className="w-[80px] text-center">Status</TableHead>
+                    <TableHead className="w-[60px] text-center">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -514,7 +515,7 @@ function PaginaMes() {
                         {d.virtual && (
                           <span className={cn(
                             "text-[10px] px-1.5 py-0.5 rounded-full text-white font-bold uppercase",
-                            d.origin === "fixa" ? "bg-saldo" : "bg-parcela"
+                            d.origin === "fixa" ? "bg-saldo" : "bg-parcelas"
                           )}>
                             {d.origin === "fixa" ? "Fixa" : "Parcela"}
                           </span>
@@ -534,13 +535,34 @@ function PaginaMes() {
                           <StatusBadge status={d.status} className="cursor-pointer hover:opacity-80 transition-opacity" />
                         </button>
                       </TableCell>
+                      <TableCell className="text-center">
+                        {!d.virtual ? (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                            onClick={() => setItemParaExcluir(d.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        ) : (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 opacity-20 cursor-not-allowed"
+                            disabled
+                            title="Itens fixos/parcelas são gerenciados em suas respectivas abas"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))}
                   
-
                   {despesas.length === 0 && resumo?.totalParcelas === 0 && (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                         Nenhuma despesa para este mês.
                       </TableCell>
                     </TableRow>
