@@ -49,6 +49,7 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 function PaginaDashboard() {
   const queryClient = useQueryClient();
   const [ano, setAno] = useState(new Date().getFullYear());
+  const [mes, setMes] = useState(new Date().getMonth() + 1);
   
   const fixCategoriesMutation = useMutation({
     mutationFn: async () => {
@@ -56,7 +57,7 @@ function PaginaDashboard() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["dados-anuais", ano] });
+      queryClient.invalidateQueries({ queryKey: ["dados-financeiros", ano, mes] });
       toast.success("Categorias padrão restauradas!");
     },
     onError: (error: any) => {
@@ -68,49 +69,57 @@ function PaginaDashboard() {
     return Array.from({ length: 5 }, (_, i) => atual - 2 + i);
   }, []);
 
-  const { data: dadosAnuais, isLoading } = useQuery({
-    queryKey: ["dados-anuais", ano],
+  const { data: financeiro, isLoading } = useQuery({
+    queryKey: ["dados-financeiros", ano, mes],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
 
-      // Buscar tudo do ano selecionado
       const [
         { data: lancamentos },
         { data: contasFixas },
         { data: parcelas },
         { data: categorias }
       ] = await Promise.all([
-        supabase.from("lancamentos").select("*").eq("ano", ano),
+        supabase.from("lancamentos").select("*").eq("ano", ano).eq("mes", mes),
         supabase.from("contas_fixas").select("*").eq("ativo", true),
         supabase.from("parcelas").select("*").eq("status", "ativo"),
         supabase.from("categorias").select("*")
       ]);
 
-      // Processar cada mês
-      const meses = Array.from({ length: 12 }, (_, i) => i + 1);
-      const resumoPorMes = meses.map(mes => {
-        const lancamentosMes = (lancamentos || []).filter(l => l.mes === mes);
-        return {
-          mes,
-          nomeMes: MESES_PT_BR[mes - 1],
-          ...processarResumoFinanceiro(
-            lancamentosMes,
-            contasFixas || [],
-            parcelas || [],
-            categorias || [],
-            mes,
-            ano
-          )
-        };
-      });
+      const resumo = processarResumoFinanceiro(
+        lancamentos || [],
+        contasFixas || [],
+        parcelas || [],
+        categorias || [],
+        mes,
+        ano
+      );
 
       return {
-        resumoPorMes,
+        resumo,
         categorias: categorias || []
       };
     }
   });
+
+  const stats = useMemo(() => {
+    if (!financeiro) return null;
+    
+    const { totalReceitas, totalDespesas, saldo, percentGasto, gastosPorCategoria } = financeiro.resumo;
+    
+    const pieData = Object.values(gastosPorCategoria)
+      .filter(g => g.total > 0)
+      .sort((a, b) => b.total - a.total);
+
+    return {
+      totalReceitas,
+      totalDespesas,
+      saldo,
+      percentGasto,
+      pieData
+    };
+  }, [financeiro]);
 
   const stats = useMemo(() => {
     if (!dadosAnuais) return null;
