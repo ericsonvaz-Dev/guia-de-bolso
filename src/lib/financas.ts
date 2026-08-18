@@ -32,9 +32,9 @@ export function calcularParcelaIncidente(
 ): boolean {
   if (parcela.status !== "ativo") return false;
 
-  const inicioAbs = parcela.ano_inicio * 12 + (parcela.mes_inicio - 1); // 0-indexed month
-  const atualAbs = ano * 12 + (mes - 1);
-  const fimAbs = inicioAbs + (parcela.num_parcelas || 1) - 1;
+  const inicioAbs = (paraNumero(parcela.ano_inicio) * 12) + (paraNumero(parcela.mes_inicio) - 1); // 0-indexed month
+  const atualAbs = (ano * 12) + (mes - 1);
+  const fimAbs = inicioAbs + (paraNumero(parcela.num_parcelas) || 1) - 1;
 
   return atualAbs >= inicioAbs && atualAbs <= fimAbs;
 }
@@ -68,13 +68,9 @@ export function processarResumoFinanceiro(
 
   // 1. Processar Lançamentos Reais
   lancamentos.forEach((l) => {
-    const valor = Number(l.valor);
+    const valor = paraNumero(l.valor);
     if (l.tipo === "receita") {
       totalReceitas += valor;
-      if (l.status === "pago") {
-        pagas += valor;
-      }
-      // Receitas pendentes não somam em "pendentes" (que deve ser focado em obrigações/despesas)
     } else {
       despesasManuais += valor;
       if (l.categoria_id) {
@@ -91,11 +87,16 @@ export function processarResumoFinanceiro(
 
   // 2. Processar Contas Fixas Automáticas
   // Consideramos uma conta fixa como "já lançada" se houver um lançamento manual com a mesma descrição
-  const descricoesLancadas = new Set(lancamentos.map(l => l.descricao.toLowerCase()));
+  const descricoesLancadas = new Set(
+    lancamentos
+      .map(l => (l.descricao ?? "").toLowerCase())
+      .filter(d => d !== "")
+  );
 
   contasFixas.forEach((cf) => {
-    if (cf.ativo && !descricoesLancadas.has(cf.descricao.toLowerCase())) {
-      const valor = Number(cf.valor);
+    const descNormalizada = (cf.descricao ?? "").toLowerCase();
+    if (cf.ativo && descNormalizada !== "" && !descricoesLancadas.has(descNormalizada)) {
+      const valor = paraNumero(cf.valor);
       totalContasFixas += valor;
       pendentes += valor;
 
@@ -108,12 +109,12 @@ export function processarResumoFinanceiro(
       lancamentosCompletos.push({
         id: `fixa-${cf.id}`,
         user_id: cf.user_id,
-        descricao: cf.descricao,
+        descricao: cf.descricao ?? "Conta Fixa",
         valor: cf.valor,
         tipo: "despesa",
         status: "pendente",
         categoria_id: cf.categoria_id,
-        data: `${ano}-${String(mes).padStart(2, '0')}-${String(cf.dia).padStart(2, '0')}`,
+        data: `${ano}-${String(mes).padStart(2, '0')}-${String(paraNumero(cf.dia) || 1).padStart(2, '0')}`,
         mes,
         ano,
         created_at: new Date().toISOString(),
@@ -131,7 +132,6 @@ export function processarResumoFinanceiro(
       totalParcelas += valor;
       
       // Verifica se existe um lançamento manual referente a esta parcela para este mês já pago
-      // Pela regra do app, se o usuário pagar na aba Mês, criamos/atualizamos um lançamento real
       const lancamentoPago = lancamentos.find(l => 
         l.status === "pago" && 
         (l.descricao ?? "").toLowerCase().includes((p.descricao ?? "").toLowerCase())

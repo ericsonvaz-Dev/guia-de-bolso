@@ -71,7 +71,7 @@ function PaginaDashboard() {
 
   const fixCategoriesMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.rpc("fix_user_categories", {});
+      const { error } = await supabase.rpc("fix_user_categories");
       if (error) throw error;
     },
     onSuccess: () => {
