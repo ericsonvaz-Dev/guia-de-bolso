@@ -1,4 +1,5 @@
 import { Tables, Enums } from "@/integrations/supabase/types";
+import { paraNumero } from "./formatadores";
 
 export type Lancamento = Tables<"lancamentos">;
 export type ContaFixa = Tables<"contas_fixas">;
@@ -31,9 +32,9 @@ export function calcularParcelaIncidente(
 ): boolean {
   if (parcela.status !== "ativo") return false;
 
-  const inicioAbs = parcela.ano_inicio * 12 + (parcela.mes_inicio - 1); // 0-indexed month
-  const atualAbs = ano * 12 + (mes - 1);
-  const fimAbs = inicioAbs + (parcela.num_parcelas || 1) - 1;
+  const inicioAbs = (paraNumero(parcela.ano_inicio) * 12) + (paraNumero(parcela.mes_inicio) - 1); // 0-indexed month
+  const atualAbs = (ano * 12) + (mes - 1);
+  const fimAbs = inicioAbs + (paraNumero(parcela.num_parcelas) || 1) - 1;
 
   return atualAbs >= inicioAbs && atualAbs <= fimAbs;
 }
@@ -67,13 +68,9 @@ export function processarResumoFinanceiro(
 
   // 1. Processar Lançamentos Reais
   lancamentos.forEach((l) => {
-    const valor = Number(l.valor);
+    const valor = paraNumero(l.valor);
     if (l.tipo === "receita") {
       totalReceitas += valor;
-      if (l.status === "pago") {
-        pagas += valor;
-      }
-      // Receitas pendentes não somam em "pendentes" (que deve ser focado em obrigações/despesas)
     } else {
       despesasManuais += valor;
       if (l.categoria_id) {
@@ -90,11 +87,16 @@ export function processarResumoFinanceiro(
 
   // 2. Processar Contas Fixas Automáticas
   // Consideramos uma conta fixa como "já lançada" se houver um lançamento manual com a mesma descrição
-  const descricoesLancadas = new Set(lancamentos.map(l => l.descricao.toLowerCase()));
+  const descricoesLancadas = new Set(
+    lancamentos
+      .map(l => (l.descricao ?? "").toLowerCase())
+      .filter(d => d !== "")
+  );
 
   contasFixas.forEach((cf) => {
-    if (cf.ativo && !descricoesLancadas.has(cf.descricao.toLowerCase())) {
-      const valor = Number(cf.valor);
+    const descNormalizada = (cf.descricao ?? "").toLowerCase();
+    if (cf.ativo && descNormalizada !== "" && !descricoesLancadas.has(descNormalizada)) {
+      const valor = paraNumero(cf.valor);
       totalContasFixas += valor;
       pendentes += valor;
 
@@ -107,12 +109,12 @@ export function processarResumoFinanceiro(
       lancamentosCompletos.push({
         id: `fixa-${cf.id}`,
         user_id: cf.user_id,
-        descricao: cf.descricao,
+        descricao: cf.descricao ?? "Conta Fixa",
         valor: cf.valor,
         tipo: "despesa",
         status: "pendente",
         categoria_id: cf.categoria_id,
-        data: `${ano}-${String(mes).padStart(2, '0')}-${String(cf.dia).padStart(2, '0')}`,
+        data: `${ano}-${String(mes).padStart(2, '0')}-${String(paraNumero(cf.dia) || 1).padStart(2, '0')}`,
         mes,
         ano,
         created_at: new Date().toISOString(),
@@ -126,9 +128,20 @@ export function processarResumoFinanceiro(
   // 3. Processar Parcelas Incidentes
   parcelas.forEach((p) => {
     if (calcularParcelaIncidente(p, mes, ano)) {
-      const valor = Number(p.valor_parcela);
+      const valor = paraNumero(p.valor_parcela);
       totalParcelas += valor;
-      pendentes += valor;
+      
+      // Verifica se existe um lançamento manual referente a esta parcela para este mês já pago
+      const lancamentoPago = lancamentos.find(l => 
+        l.status === "pago" && 
+        (l.descricao ?? "").toLowerCase().includes((p.descricao ?? "").toLowerCase())
+      );
+
+      if (lancamentoPago) {
+        pagas += valor;
+      } else {
+        pendentes += valor;
+      }
 
       if (p.categoria_id) {
         const cat = gastosPorCategoria[p.categoria_id];
@@ -139,10 +152,10 @@ export function processarResumoFinanceiro(
       lancamentosCompletos.push({
         id: `parcela-${p.id}`,
         user_id: p.user_id,
-        descricao: `Parcela: ${p.descricao}`,
+        descricao: `Parcela: ${p.descricao ?? "Sem descrição"}`,
         valor: p.valor_parcela,
         tipo: "despesa",
-        status: "pendente",
+        status: lancamentoPago ? "pago" : "pendente",
         categoria_id: p.categoria_id,
         data: `${ano}-${String(mes).padStart(2, '0')}-01`, // Data simbólica (início do mês)
         mes,
