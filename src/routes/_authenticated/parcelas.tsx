@@ -70,7 +70,7 @@ const formSchema = z.object({
   mes_inicio: z.number().min(1).max(12),
   ano_inicio: z.number().min(2000).max(2100),
   data_primeira_parcela: z.string().min(1, "Data é obrigatória"),
-  status: z.enum(["ativo", "quitado"]),
+  status: z.enum(["ativo", "quitado", "pago"]),
 });
 
 type FormValues = z.infer<typeof formSchema>;
