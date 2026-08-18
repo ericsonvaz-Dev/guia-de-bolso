@@ -169,13 +169,9 @@ function PaginaAuth() {
       <div className="hidden items-center justify-center bg-[#FBEEF0] p-12 lg:flex">
         <div className="relative h-full w-full max-w-2xl overflow-hidden rounded-3xl">
           <img
-            src="/login-hero.png"
+            src={heroAsset.url}
             alt="Ilustração Controle Financeiro"
             className="h-full w-full object-contain"
-            onError={(e) => {
-              // Fallback caso a imagem ainda não exista ou falhe
-              (e.target as HTMLImageElement).src = "https://placehold.co/800x800/FBEEF0/6D4AE0?text=Piggy+Bank+Hero";
-            }}
           />
         </div>
       </div>
