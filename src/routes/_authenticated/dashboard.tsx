@@ -31,7 +31,12 @@ import { processarResumoFinanceiro } from "@/lib/financas";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+
+const PALETA_CATEGORIAS = [
+  "#1F4E78", "#C62828", "#2E7D32", "#F9A825", "#6A1B9A",
+  "#00838F", "#EF6C00", "#AD1457", "#558B2F", "#4527A0",
+  "#00695C", "#D84315", "#5D4037", "#283593", "#9E9D24"
+];
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
@@ -110,7 +115,11 @@ function PaginaDashboard() {
     
     const pieData = Object.values(gastosPorCategoria)
       .filter(g => g.total > 0)
-      .sort((a, b) => b.total - a.total);
+      .sort((a, b) => b.total - a.total)
+      .map((item, index) => ({
+        ...item,
+        corGrafico: PALETA_CATEGORIAS[index % PALETA_CATEGORIAS.length]
+      }));
 
     return {
       totalReceitas,
@@ -265,14 +274,20 @@ function PaginaDashboard() {
                     dataKey="total"
                     nameKey="nome"
                   >
-                    {stats.pieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.cor} />
+                    {stats.pieData.map((entry: any, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.corGrafico} />
                     ))}
                   </Pie>
                   <Tooltip 
-                    formatter={(value: any) => formatarBRL(Number(value))}
+                    formatter={(value: any, name: string, props: any) => [formatarBRL(Number(value)), name]}
+                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                    itemStyle={{ color: 'inherit' }}
                   />
-                  <Legend />
+                  <Legend 
+                    formatter={(value, entry: any) => (
+                      <span style={{ color: entry.color }}>{value}</span>
+                    )}
+                  />
                 </RechartsPieChart>
               </ResponsiveContainer>
             ) : (
@@ -327,7 +342,7 @@ function PaginaDashboard() {
                   <th className="text-right py-3 px-2 font-medium">Saldo</th>
                   <th className="text-center py-3 px-2 font-medium">% Gasto</th>
                   <th className="text-right py-3 px-2 font-medium">Pagas</th>
-                  <th className="text-right py-3 px-2 font-medium">Pendentes</th>
+                  <th className="text-right py-3 px-2 font-medium">Pendentes no Mês</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
