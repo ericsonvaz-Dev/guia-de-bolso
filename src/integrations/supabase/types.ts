@@ -227,6 +227,24 @@ export type Database = {
           },
         ]
       }
+      profiles: {
+        Row: {
+          id: string
+          nome_exibicao: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id: string
+          nome_exibicao?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          nome_exibicao?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

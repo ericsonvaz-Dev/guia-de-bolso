@@ -88,7 +88,7 @@ function PaginaDashboard() {
     enabled: !!userAuth?.id,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("profiles")
+        .from("profiles" as any)
         .select("*")
         .eq("id", userAuth!.id)
         .single();
@@ -100,7 +100,7 @@ function PaginaDashboard() {
   const updateProfileMutation = useMutation({
     mutationFn: async (nome: string) => {
       const { error } = await supabase
-        .from("profiles")
+        .from("profiles" as any)
         .update({ nome_exibicao: nome, updated_at: new Date().toISOString() })
         .eq("id", userAuth!.id);
       if (error) throw error;
@@ -114,7 +114,10 @@ function PaginaDashboard() {
 
   const updateAuthMutation = useMutation({
     mutationFn: async ({ email, password }: { email?: string; password?: string }) => {
-      const { error } = await supabase.auth.updateUser({ email, password });
+      const attributes: any = {};
+      if (email) attributes.email = email;
+      if (password) attributes.password = password;
+      const { error } = await supabase.auth.updateUser(attributes);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -262,12 +265,12 @@ function PaginaDashboard() {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-3xl font-bold tracking-tight">
-              {profile?.nome_exibicao ? `Olá, ${profile.nome_exibicao}` : `Dashboard ${ano}`}
+              {(profile as any)?.nome_exibicao ? `Olá, ${(profile as any).nome_exibicao}` : `Dashboard ${ano}`}
             </h1>
             <Dialog open={configAberto} onOpenChange={(open) => {
               setConfigAberto(open);
               if (open) {
-                setNovoNome(profile?.nome_exibicao || "");
+                setNovoNome((profile as any)?.nome_exibicao || "");
                 setNovoEmail(userAuth?.email || "");
               }
             }}>
@@ -358,7 +361,7 @@ function PaginaDashboard() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-            {profile?.nome_exibicao && <span className="text-3xl font-bold tracking-tight text-muted-foreground ml-2">{ano}</span>}
+            {(profile as any)?.nome_exibicao && <span className="text-3xl font-bold tracking-tight text-muted-foreground ml-2">{ano}</span>}
           </div>
           <p className="text-muted-foreground">
             Visão geral consolidada do mês selecionado.
