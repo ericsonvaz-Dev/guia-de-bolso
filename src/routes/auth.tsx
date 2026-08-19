@@ -163,6 +163,11 @@ function PaginaAuth() {
     );
   }
 
+  const [montado, setMontado] = useState(false);
+  useEffect(() => { setMontado(true); }, []);
+
+  if (!montado) return null;
+
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
       {/* COLUNA ESQUERDA: Imagem */}
