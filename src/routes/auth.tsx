@@ -57,13 +57,28 @@ function PaginaAuth() {
 
   useEffect(() => {
     let ativo = true;
-    supabase.auth.getSession().then(({ data }) => {
+
+    // Lidar com o link de confirmação do e-mail (PKCE ou implícito)
+    // O Supabase às vezes coloca os tokens na URL
+    const handleAuthChange = async () => {
+      const { data } = await supabase.auth.getSession();
       if (ativo && data.session) {
+        toast.success("E-mail confirmado com sucesso!");
+        navigate({ to: "/dashboard", replace: true });
+      }
+    };
+
+    handleAuthChange();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (ativo && (event === "SIGNED_IN" || event === "USER_UPDATED") && session) {
         navigate({ to: "/dashboard", replace: true });
       }
     });
+
     return () => {
       ativo = false;
+      subscription.unsubscribe();
     };
   }, [navigate]);
 
