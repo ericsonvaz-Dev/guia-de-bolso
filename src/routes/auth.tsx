@@ -42,6 +42,7 @@ function traduzirErro(mensagem: string): string {
   if (m.includes("unable to validate email")) return "E-mail inválido.";
   if (m.includes("rate limit") || m.includes("too many"))
     return "Muitas tentativas. Aguarde alguns instantes.";
+  if (m.includes("email rate limit exceeded")) return "Limite de e-mails excedido. Tente novamente em alguns minutos.";
   return "Não foi possível concluir. Tente novamente.";
 }
 
@@ -56,13 +57,28 @@ function PaginaAuth() {
 
   useEffect(() => {
     let ativo = true;
-    supabase.auth.getSession().then(({ data }) => {
+
+    // Lidar com o link de confirmação do e-mail (PKCE ou implícito)
+    // O Supabase às vezes coloca os tokens na URL
+    const handleAuthChange = async () => {
+      const { data } = await supabase.auth.getSession();
       if (ativo && data.session) {
+        toast.success("E-mail confirmado com sucesso!");
+        navigate({ to: "/dashboard", replace: true });
+      }
+    };
+
+    handleAuthChange();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (ativo && (event === "SIGNED_IN" || event === "USER_UPDATED") && session) {
         navigate({ to: "/dashboard", replace: true });
       }
     });
+
     return () => {
       ativo = false;
+      subscription.unsubscribe();
     };
   }, [navigate]);
 
@@ -96,7 +112,12 @@ function PaginaAuth() {
       const { data, error } = await supabase.auth.signUp({
         email,
         password: senha,
-        options: { emailRedirectTo: window.location.origin },
+        options: { 
+          emailRedirectTo: `${window.location.origin}/auth`,
+          data: {
+            nome_exibicao: email.split('@')[0]
+          }
+        },
       });
       if (error) {
         toast.error(traduzirErro(error.message));
