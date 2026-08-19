@@ -112,7 +112,12 @@ function PaginaAuth() {
       const { data, error } = await supabase.auth.signUp({
         email,
         password: senha,
-        options: { emailRedirectTo: `${window.location.origin}/auth` },
+        options: { 
+          emailRedirectTo: `${window.location.origin}/auth`,
+          data: {
+            nome_exibicao: email.split('@')[0]
+          }
+        },
       });
       if (error) {
         toast.error(traduzirErro(error.message));
