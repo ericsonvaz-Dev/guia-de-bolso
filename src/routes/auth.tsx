@@ -42,6 +42,7 @@ function traduzirErro(mensagem: string): string {
   if (m.includes("unable to validate email")) return "E-mail inválido.";
   if (m.includes("rate limit") || m.includes("too many"))
     return "Muitas tentativas. Aguarde alguns instantes.";
+  if (m.includes("email rate limit exceeded")) return "Limite de e-mails excedido. Tente novamente em alguns minutos.";
   return "Não foi possível concluir. Tente novamente.";
 }
 
