@@ -161,7 +161,10 @@ function PaginaAuth() {
 
   if (aguardandoConfirmacao) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#FBEEF0] px-4">
+      <div
+        className="flex min-h-screen items-center justify-center bg-[#FBEEF0] bg-cover bg-center bg-no-repeat px-4"
+        style={{ backgroundImage: `url(${heroAsset.url})` }}
+      >
         <Card className="w-full max-w-md rounded-2xl border-none shadow-xl">
           <CardContent className="flex flex-col items-center p-8 text-center">
             <div className="mb-6 rounded-full bg-green-100 p-3 text-green-600">
@@ -190,20 +193,12 @@ function PaginaAuth() {
   if (!montado) return null;
 
   return (
-    <div className="grid min-h-screen lg:grid-cols-2">
-      {/* COLUNA ESQUERDA: Imagem */}
-      <div className="hidden items-center justify-center bg-[#FBEEF0] p-12 lg:flex">
-        <div className="relative h-full w-full max-w-2xl overflow-hidden rounded-3xl">
-          <img
-            src={heroAsset.url}
-            alt="Ilustração Controle Financeiro"
-            className="h-full w-full object-contain"
-          />
-        </div>
-      </div>
-
-      {/* COLUNA DIREITA: Formulário */}
-      <div className="flex items-center justify-center bg-[#FBEEF0] p-6 lg:bg-white lg:p-12">
+    <div
+      className="flex min-h-screen items-center justify-center bg-[#FBEEF0] bg-cover bg-center bg-no-repeat p-6"
+      style={{ backgroundImage: `url(${heroAsset.url})` }}
+    >
+      {/* Formulário sobre a imagem de fundo */}
+      <div className="flex w-full items-center justify-center">
         <Card className="w-full max-w-[400px] border-none bg-white shadow-xl ring-1 ring-black/5 lg:shadow-2xl rounded-2xl overflow-hidden">
           <CardContent className="p-8">
             {/* Logo e Título */}
