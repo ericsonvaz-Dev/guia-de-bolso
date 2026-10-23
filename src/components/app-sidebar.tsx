@@ -5,6 +5,7 @@ import {
   CreditCard,
   LayoutDashboard,
   LogOut,
+  PiggyBank,
   Receipt,
   SearchCheck,
   Wallet,
@@ -33,6 +34,7 @@ const ITENS = [
   { titulo: "Contas Fixas", url: "/contas-fixas", icone: Receipt },
   { titulo: "Parcelas", url: "/parcelas", icone: CreditCard },
   { titulo: "Análise", url: "/analise", icone: SearchCheck },
+  { titulo: "Investimentos", url: "/investimentos", icone: PiggyBank },
 ] as const;
 
 export interface AppSidebarProps {

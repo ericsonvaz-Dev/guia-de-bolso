@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedAnaliseRouteImport } from './routes/_authenticated/analise'
 import { Route as AuthenticatedContasFixasRouteImport } from './routes/_authenticated/contas-fixas'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedInvestimentosRouteImport } from './routes/_authenticated/investimentos'
 import { Route as AuthenticatedMesRouteImport } from './routes/_authenticated/mes'
 import { Route as AuthenticatedParcelasRouteImport } from './routes/_authenticated/parcelas'
 
@@ -48,6 +49,12 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedInvestimentosRoute =
+  AuthenticatedInvestimentosRouteImport.update({
+    id: '/investimentos',
+    path: '/investimentos',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedMesRoute = AuthenticatedMesRouteImport.update({
   id: '/mes',
   path: '/mes',
@@ -65,6 +72,7 @@ export interface FileRoutesByFullPath {
   '/analise': typeof AuthenticatedAnaliseRoute
   '/contas-fixas': typeof AuthenticatedContasFixasRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/investimentos': typeof AuthenticatedInvestimentosRoute
   '/mes': typeof AuthenticatedMesRoute
   '/parcelas': typeof AuthenticatedParcelasRoute
 }
@@ -74,6 +82,7 @@ export interface FileRoutesByTo {
   '/analise': typeof AuthenticatedAnaliseRoute
   '/contas-fixas': typeof AuthenticatedContasFixasRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/investimentos': typeof AuthenticatedInvestimentosRoute
   '/mes': typeof AuthenticatedMesRoute
   '/parcelas': typeof AuthenticatedParcelasRoute
 }
@@ -85,6 +94,7 @@ export interface FileRoutesById {
   '/_authenticated/analise': typeof AuthenticatedAnaliseRoute
   '/_authenticated/contas-fixas': typeof AuthenticatedContasFixasRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/investimentos': typeof AuthenticatedInvestimentosRoute
   '/_authenticated/mes': typeof AuthenticatedMesRoute
   '/_authenticated/parcelas': typeof AuthenticatedParcelasRoute
 }
@@ -96,6 +106,7 @@ export interface FileRouteTypes {
     | '/analise'
     | '/contas-fixas'
     | '/dashboard'
+    | '/investimentos'
     | '/mes'
     | '/parcelas'
   fileRoutesByTo: FileRoutesByTo
@@ -105,6 +116,7 @@ export interface FileRouteTypes {
     | '/analise'
     | '/contas-fixas'
     | '/dashboard'
+    | '/investimentos'
     | '/mes'
     | '/parcelas'
   id:
@@ -115,6 +127,7 @@ export interface FileRouteTypes {
     | '/_authenticated/analise'
     | '/_authenticated/contas-fixas'
     | '/_authenticated/dashboard'
+    | '/_authenticated/investimentos'
     | '/_authenticated/mes'
     | '/_authenticated/parcelas'
   fileRoutesById: FileRoutesById
@@ -169,6 +182,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/investimentos': {
+      id: '/_authenticated/investimentos'
+      path: '/investimentos'
+      fullPath: '/investimentos'
+      preLoaderRoute: typeof AuthenticatedInvestimentosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/mes': {
       id: '/_authenticated/mes'
       path: '/mes'
@@ -190,6 +210,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAnaliseRoute: typeof AuthenticatedAnaliseRoute
   AuthenticatedContasFixasRoute: typeof AuthenticatedContasFixasRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedInvestimentosRoute: typeof AuthenticatedInvestimentosRoute
   AuthenticatedMesRoute: typeof AuthenticatedMesRoute
   AuthenticatedParcelasRoute: typeof AuthenticatedParcelasRoute
 }
@@ -198,6 +219,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAnaliseRoute: AuthenticatedAnaliseRoute,
   AuthenticatedContasFixasRoute: AuthenticatedContasFixasRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedInvestimentosRoute: AuthenticatedInvestimentosRoute,
   AuthenticatedMesRoute: AuthenticatedMesRoute,
   AuthenticatedParcelasRoute: AuthenticatedParcelasRoute,
 }

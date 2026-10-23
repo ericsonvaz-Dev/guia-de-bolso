@@ -88,6 +88,48 @@ export type Database = {
           },
         ]
       }
+      investimentos: {
+        Row: {
+          created_at: string
+          data: string
+          id: string
+          instituicao: string
+          movimento: Database["public"]["Enums"]["tipo_movimento_investimento"]
+          nome: string
+          observacao: string | null
+          tipo_ativo: Database["public"]["Enums"]["tipo_ativo"]
+          updated_at: string
+          user_id: string
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          data?: string
+          id?: string
+          instituicao: string
+          movimento?: Database["public"]["Enums"]["tipo_movimento_investimento"]
+          nome: string
+          observacao?: string | null
+          tipo_ativo?: Database["public"]["Enums"]["tipo_ativo"]
+          updated_at?: string
+          user_id: string
+          valor: number
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          id?: string
+          instituicao?: string
+          movimento?: Database["public"]["Enums"]["tipo_movimento_investimento"]
+          nome?: string
+          observacao?: string | null
+          tipo_ativo?: Database["public"]["Enums"]["tipo_ativo"]
+          updated_at?: string
+          user_id?: string
+          valor?: number
+        }
+        Relationships: []
+      }
       lancamentos: {
         Row: {
           ano: number
@@ -259,7 +301,17 @@ export type Database = {
       forma_pagamento: "credito" | "debito" | "dinheiro_pix"
       status_lancamento: "pago" | "pendente"
       status_parcela: "ativo" | "quitado"
+      tipo_ativo:
+        | "renda_fixa"
+        | "tesouro"
+        | "acoes"
+        | "fiis"
+        | "fundos"
+        | "cripto"
+        | "previdencia"
+        | "outros"
       tipo_movimento: "receita" | "despesa"
+      tipo_movimento_investimento: "aporte" | "resgate"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -390,7 +442,18 @@ export const Constants = {
       forma_pagamento: ["credito", "debito", "dinheiro_pix"],
       status_lancamento: ["pago", "pendente"],
       status_parcela: ["ativo", "quitado"],
+      tipo_ativo: [
+        "renda_fixa",
+        "tesouro",
+        "acoes",
+        "fiis",
+        "fundos",
+        "cripto",
+        "previdencia",
+        "outros",
+      ],
       tipo_movimento: ["receita", "despesa"],
+      tipo_movimento_investimento: ["aporte", "resgate"],
     },
   },
 } as const
