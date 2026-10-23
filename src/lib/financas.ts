@@ -1,4 +1,4 @@
-import { Tables } from "@/integrations/supabase/types";
+import { Enums, Tables } from "@/integrations/supabase/types";
 import { paraNumero } from "./formatadores";
 
 export type Lancamento = Tables<"lancamentos">;
@@ -7,7 +7,23 @@ export type Parcela = Tables<"parcelas">;
 export type PagamentoOcorrencia = Tables<"pagamentos_ocorrencia">;
 export type Categoria = Tables<"categorias">;
 
+export type FormaPagamento = Enums<"forma_pagamento">;
+
+export const FORMAS_PAGAMENTO: { valor: FormaPagamento; rotulo: string }[] = [
+  { valor: "credito", rotulo: "Cartão de crédito" },
+  { valor: "debito", rotulo: "Cartão de débito" },
+  { valor: "dinheiro_pix", rotulo: "Dinheiro / Pix" },
+];
+
+export function rotuloFormaPagamento(forma: FormaPagamento | null | undefined): string {
+  return FORMAS_PAGAMENTO.find((f) => f.valor === forma)?.rotulo ?? "Não informado";
+}
+
+/** Onde o dinheiro saiu: cada despesa do mês cai em exatamente um destes grupos. */
+export type GrupoPagamento = FormaPagamento | "fixa" | "nao_informado";
+
 export interface ResumoFinanceiro {
+  gastosPorForma: Record<GrupoPagamento, number>;
   totalReceitas: number;
   despesasManuais: number;
   totalContasFixas: number;
@@ -29,6 +45,42 @@ export function calcularParcelaIncidente(parcela: Parcela, mes: number, ano: num
   return atualAbs >= inicioAbs && atualAbs <= fimAbs;
 }
 
+export interface SituacaoParcela {
+  /** Número da parcela no mês consultado (1..total). 0 se ainda não começou. */
+  atual: number;
+  total: number;
+  restantes: number;
+  estado: "futura" | "andamento" | "encerrada";
+  inicio: { mes: number; ano: number };
+  fim: { mes: number; ano: number };
+}
+
+function mesPorIndice(indiceAbs: number) {
+  return { ano: Math.floor(indiceAbs / 12), mes: (indiceAbs % 12) + 1 };
+}
+
+/** Em que ponto está uma compra parcelada em relação a um determinado mês. */
+export function situacaoParcela(parcela: Parcela, mes: number, ano: number): SituacaoParcela {
+  const total = paraNumero(parcela.num_parcelas) || 1;
+  const inicioAbs = paraNumero(parcela.ano_inicio) * 12 + (paraNumero(parcela.mes_inicio) - 1);
+  const fimAbs = inicioAbs + total - 1;
+  const atualAbs = ano * 12 + (mes - 1);
+
+  let estado: SituacaoParcela["estado"] = "andamento";
+  if (atualAbs < inicioAbs) estado = "futura";
+  else if (atualAbs > fimAbs) estado = "encerrada";
+
+  const atual = estado === "futura" ? 0 : Math.min(atualAbs - inicioAbs + 1, total);
+  return {
+    atual,
+    total,
+    restantes: estado === "encerrada" ? 0 : total - atual,
+    estado,
+    inicio: mesPorIndice(inicioAbs),
+    fim: mesPorIndice(fimAbs),
+  };
+}
+
 export function processarResumoFinanceiro(
   lancamentos: Lancamento[],
   contasFixas: ContaFixa[],
@@ -46,7 +98,14 @@ export function processarResumoFinanceiro(
   let pagas = 0;
   let pendentes = 0;
   const gastosPorCategoria: Record<string, { nome: string; total: number; cor: string }> = {};
-  
+  const gastosPorForma: Record<GrupoPagamento, number> = {
+    credito: 0,
+    debito: 0,
+    dinheiro_pix: 0,
+    fixa: 0,
+    nao_informado: 0,
+  };
+
   const lancamentosCompletos: (Lancamento & { virtual?: boolean; origin?: "fixa" | "parcela"; pagamentosOcorrencia?: PagamentoOcorrencia | null })[] = [];
 
   categorias.forEach((cat) => {
@@ -62,7 +121,8 @@ export function processarResumoFinanceiro(
       // Se for despesa, entra no cálculo de pagas/pendentes
       totalDespesas += valor;
       despesasManuais += valor;
-      
+      gastosPorForma[l.forma_pagamento ?? "nao_informado"] += valor;
+
       if (l.categoria_id) {
         const cat = gastosPorCategoria[l.categoria_id];
         if (cat) cat.total += valor;
@@ -83,7 +143,8 @@ export function processarResumoFinanceiro(
     const valor = paraNumero(cf.valor);
     totalDespesas += valor;
     totalContasFixas += valor;
-    
+    gastosPorForma.fixa += valor;
+
     const pagamento = pagamentosOcorrencia.find(p => p.origem === 'fixa' && p.origem_id === cf.id);
     const isPago = pagamento?.pago || false;
     
@@ -105,6 +166,7 @@ export function processarResumoFinanceiro(
       valor: cf.valor,
       tipo: "despesa",
       status: isPago ? "pago" : "pendente",
+      forma_pagamento: null,
       categoria_id: cf.categoria_id,
       data: `${ano}-${String(mes).padStart(2, '0')}-${String(paraNumero(cf.dia) || 1).padStart(2, '0')}`,
       mes,
@@ -123,7 +185,8 @@ export function processarResumoFinanceiro(
       const valor = paraNumero(p.valor_parcela);
       totalDespesas += valor;
       totalParcelas += valor;
-      
+      gastosPorForma.credito += valor;
+
       const pagamento = pagamentosOcorrencia.find(p_occ => p_occ.origem === 'parcela' && p_occ.origem_id === p.id);
       const isPago = pagamento?.pago || false;
       
@@ -141,10 +204,11 @@ export function processarResumoFinanceiro(
       lancamentosCompletos.push({
         id: `parcela-${p.id}`,
         user_id: p.user_id,
-        descricao: `Parcela: ${p.descricao ?? "Sem descrição"}`,
+        descricao: `${p.descricao ?? "Sem descrição"} (${situacaoParcela(p, mes, ano).atual}/${situacaoParcela(p, mes, ano).total})`,
         valor: p.valor_parcela,
         tipo: "despesa",
         status: isPago ? "pago" : "pendente",
+        forma_pagamento: "credito",
         categoria_id: p.categoria_id,
         data: `${ano}-${String(mes).padStart(2, '0')}-01`,
         mes,
@@ -159,6 +223,7 @@ export function processarResumoFinanceiro(
   });
 
   return {
+    gastosPorForma,
     totalReceitas,
     despesasManuais,
     totalContasFixas,

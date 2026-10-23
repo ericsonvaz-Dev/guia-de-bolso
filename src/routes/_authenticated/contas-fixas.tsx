@@ -14,7 +14,10 @@ import * as z from "zod";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
-import { formatarBRL, paraNumero } from "@/lib/formatadores";
+import { Link } from "@tanstack/react-router";
+import { CreditCard } from "lucide-react";
+import { formatarBRL, nomeDoMes, paraNumero } from "@/lib/formatadores";
+import { situacaoParcela } from "@/lib/financas";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -104,6 +107,47 @@ function PaginaContasFixas() {
       return data;
     },
   });
+
+  const { data: parcelas, isLoading: isLoadingParcelas } = useQuery({
+    queryKey: ["parcelas"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("parcelas")
+        .select(`
+          *,
+          categorias (
+            nome,
+            cor
+          )
+        `)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const hoje = new Date();
+  const mesAtual = hoje.getMonth() + 1;
+  const anoAtual = hoje.getFullYear();
+
+  // Só mostra o que ainda pesa no bolso: em andamento ou que vai começar.
+  const parcelasNoCartao = (parcelas ?? [])
+    .filter((p) => p.status === "ativo")
+    .map((p) => ({ parcela: p, situacao: situacaoParcela(p, mesAtual, anoAtual) }))
+    .filter(({ situacao }) => situacao.estado !== "encerrada");
+
+  const totalParcelasMes = parcelasNoCartao
+    .filter(({ situacao }) => situacao.estado === "andamento")
+    .reduce((acc, { parcela }) => acc + paraNumero(parcela.valor_parcela), 0);
+
+  const totalFaltaPagar = parcelasNoCartao.reduce(
+    (acc, { parcela, situacao }) =>
+      acc +
+      paraNumero(parcela.valor_parcela) *
+        (situacao.estado === "futura" ? situacao.total : situacao.restantes),
+    0,
+  );
 
   const { data: categorias } = useQuery({
     queryKey: ["categorias-despesas"],
@@ -477,6 +521,97 @@ function PaginaContasFixas() {
               )}
             </TableBody>
           </Table>
+        </CardContent>
+      </Card>
+
+      <Card className="border-l-4 border-l-[#6A1B9A]">
+        <CardHeader className="flex flex-row items-start justify-between gap-4">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <CreditCard className="h-5 w-5 text-[#6A1B9A]" /> Parcelado no cartão
+            </CardTitle>
+            <CardDescription>
+              Compras parceladas no crédito entram aqui sozinhas e saem quando a última parcela é paga.
+            </CardDescription>
+          </div>
+          <div className="text-right shrink-0">
+            <p className="text-xs text-muted-foreground">Parcelas deste mês</p>
+            <p className="text-lg font-bold text-[#6A1B9A]">{formatarBRL(totalParcelasMes)}</p>
+            <p className="text-[11px] text-muted-foreground">
+              Ainda falta pagar {formatarBRL(totalFaltaPagar)}
+            </p>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Descrição</TableHead>
+                  <TableHead>Categoria</TableHead>
+                  <TableHead>Parcela</TableHead>
+                  <TableHead>Valor da parcela</TableHead>
+                  <TableHead>Termina em</TableHead>
+                  <TableHead className="text-right">Falta pagar</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoadingParcelas ? (
+                  <TableRow>
+                    <TableCell colSpan={6}><Skeleton className="h-4 w-full" /></TableCell>
+                  </TableRow>
+                ) : parcelasNoCartao.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                      Nenhuma compra parcelada em andamento. Ao lançar uma despesa no cartão de
+                      crédito marcando "Foi parcelado?", ela aparece aqui.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  parcelasNoCartao.map(({ parcela, situacao }) => {
+                    const valor = paraNumero(parcela.valor_parcela);
+                    const falta = valor * (situacao.estado === "futura" ? situacao.total : situacao.restantes);
+                    return (
+                      <TableRow key={parcela.id}>
+                        <TableCell className="font-medium">{parcela.descricao}</TableCell>
+                        <TableCell>
+                          {parcela.categorias && (
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="w-3 h-3 rounded-full"
+                                style={{ backgroundColor: (parcela.categorias as any).cor }}
+                              />
+                              <span>{(parcela.categorias as any).nome}</span>
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {situacao.estado === "futura" ? (
+                            <Badge variant="secondary">
+                              Começa em {nomeDoMes(situacao.inicio.mes)}/{situacao.inicio.ano}
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-[#6A1B9A] text-white">
+                              {situacao.atual} de {situacao.total}
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-[#C62828] font-medium">{formatarBRL(valor)}</TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {nomeDoMes(situacao.fim.mes)}/{situacao.fim.ano}
+                        </TableCell>
+                        <TableCell className="text-right font-medium">{formatarBRL(falta)}</TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          <p className="px-4 py-3 text-xs text-muted-foreground border-t">
+            Para editar ou excluir uma compra parcelada, use a tela{" "}
+            <Link to="/parcelas" className="underline font-medium">Parcelas</Link>.
+          </p>
         </CardContent>
       </Card>
 

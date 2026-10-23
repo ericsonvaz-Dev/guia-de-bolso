@@ -95,6 +95,7 @@ export type Database = {
           created_at: string
           data: string
           descricao: string
+          forma_pagamento: Database["public"]["Enums"]["forma_pagamento"] | null
           id: string
           mes: number
           status: Database["public"]["Enums"]["status_lancamento"]
@@ -109,6 +110,7 @@ export type Database = {
           created_at?: string
           data?: string
           descricao: string
+          forma_pagamento?: Database["public"]["Enums"]["forma_pagamento"] | null
           id?: string
           mes: number
           status?: Database["public"]["Enums"]["status_lancamento"]
@@ -123,6 +125,7 @@ export type Database = {
           created_at?: string
           data?: string
           descricao?: string
+          forma_pagamento?: Database["public"]["Enums"]["forma_pagamento"] | null
           id?: string
           mes?: number
           status?: Database["public"]["Enums"]["status_lancamento"]
@@ -253,6 +256,7 @@ export type Database = {
       fix_user_categories: { Args: never; Returns: undefined }
     }
     Enums: {
+      forma_pagamento: "credito" | "debito" | "dinheiro_pix"
       status_lancamento: "pago" | "pendente"
       status_parcela: "ativo" | "quitado"
       tipo_movimento: "receita" | "despesa"
@@ -383,6 +387,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      forma_pagamento: ["credito", "debito", "dinheiro_pix"],
       status_lancamento: ["pago", "pendente"],
       status_parcela: ["ativo", "quitado"],
       tipo_movimento: ["receita", "despesa"],

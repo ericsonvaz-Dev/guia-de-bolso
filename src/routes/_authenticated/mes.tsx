@@ -23,6 +23,8 @@ import * as z from "zod";
 
 import { useDadosFinanceiros } from "@/hooks/use-dados-financeiros";
 import { formatarBRL, formatarData, MESES_PT_BR, paraNumero } from "@/lib/formatadores";
+import { FORMAS_PAGAMENTO, rotuloFormaPagamento, type FormaPagamento } from "@/lib/financas";
+import { Switch } from "@/components/ui/switch";
 import { PALETA_CATEGORIAS } from "@/lib/cores-categorias.ts";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -89,16 +91,34 @@ export const Route = createFileRoute("/_authenticated/mes")({
   component: PaginaMes,
 });
 
-const formSchema = z.object({
-  descricao: z.string().min(1, "Descrição é obrigatória"),
-  categoria_id: z.string().min(1, "Categoria é obrigatória"),
-  valor: z.number().min(0.01, "Valor deve ser maior que zero"),
-  data: z.string().min(1, "Data é obrigatória"),
-  tipo: z.enum(["receita", "despesa"]),
-  status: z.enum(["pago", "pendente"]),
-});
+const formSchema = z
+  .object({
+    descricao: z.string().min(1, "Descrição é obrigatória"),
+    categoria_id: z.string().min(1, "Categoria é obrigatória"),
+    valor: z.number().min(0.01, "Valor deve ser maior que zero"),
+    data: z.string().min(1, "Data é obrigatória"),
+    tipo: z.enum(["receita", "despesa"]),
+    status: z.enum(["pago", "pendente"]),
+    forma_pagamento: z.enum(["credito", "debito", "dinheiro_pix"]),
+    parcelado: z.boolean(),
+    num_parcelas: z.number().int("Use um número inteiro").max(60, "Máximo 60 parcelas"),
+  })
+  .superRefine((v, ctx) => {
+    // Só valida o nº de parcelas quando a despesa realmente é parcelada no crédito.
+    const parcelada = v.tipo === "despesa" && v.forma_pagamento === "credito" && v.parcelado;
+    if (!parcelada) return;
+    if (v.num_parcelas < 2) {
+      ctx.addIssue({ code: "custom", path: ["num_parcelas"], message: "Mínimo 2 parcelas" });
+    }
+  });
 
 type FormValues = z.infer<typeof formSchema>;
+
+const VALORES_PADRAO_PAGAMENTO = {
+  forma_pagamento: "debito" as FormaPagamento,
+  parcelado: false,
+  num_parcelas: 2,
+};
 
 function PaginaMes() {
   const queryClient = useQueryClient();
@@ -133,8 +153,19 @@ function PaginaMes() {
       data: format(new Date(ano, mes - 1, Math.min(new Date().getDate(), 28)), "yyyy-MM-dd"),
       tipo: "receita",
       status: "pendente",
+      ...VALORES_PADRAO_PAGAMENTO,
     },
   });
+
+  const tipoForm = form.watch("tipo");
+  const formaForm = form.watch("forma_pagamento");
+  const parceladoForm = form.watch("parcelado");
+  const valorForm = form.watch("valor");
+  const numParcelasForm = form.watch("num_parcelas");
+  const compraParcelada = tipoForm === "despesa" && formaForm === "credito" && parceladoForm;
+  const valorDaParcela = compraParcelada && numParcelasForm >= 2
+    ? Math.round((valorForm / numParcelasForm) * 100) / 100
+    : 0;
 
   const upsertMutation = useMutation({
     mutationFn: async (values: FormValues) => {
@@ -142,7 +173,30 @@ function PaginaMes() {
       if (!user) throw new Error("Não autenticado");
 
       const dataLancamento = new Date(values.data + 'T12:00:00');
-      
+      const mesLancamento = dataLancamento.getMonth() + 1;
+      const anoLancamento = dataLancamento.getFullYear();
+
+      const parcelada =
+        values.tipo === "despesa" && values.forma_pagamento === "credito" && values.parcelado;
+
+      if (parcelada) {
+        // Compra parcelada no cartão: vira uma "parcela", que incide sozinha em cada
+        // mês e aparece em Contas Fixas > "Parcelado no cartão".
+        const { error } = await supabase.from("parcelas").insert({
+          user_id: user.id,
+          descricao: values.descricao,
+          categoria_id: values.categoria_id,
+          valor_parcela: Math.round((values.valor / values.num_parcelas) * 100) / 100,
+          num_parcelas: values.num_parcelas,
+          mes_inicio: mesLancamento,
+          ano_inicio: anoLancamento,
+          data_primeira_parcela: values.data,
+          status: "ativo",
+        });
+        if (error) throw error;
+        return;
+      }
+
       const { error } = await supabase.from("lancamentos").insert({
         user_id: user.id,
         descricao: values.descricao,
@@ -151,15 +205,23 @@ function PaginaMes() {
         data: values.data,
         tipo: values.tipo,
         status: values.status,
-        mes: dataLancamento.getMonth() + 1,
-        ano: dataLancamento.getFullYear(),
+        forma_pagamento: values.tipo === "despesa" ? values.forma_pagamento : null,
+        mes: mesLancamento,
+        ano: anoLancamento,
       });
 
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["dados-financeiros", ano, mes] });
-      toast.success("Lançamento criado com sucesso!");
+    onSuccess: (_data, values) => {
+      queryClient.invalidateQueries({ queryKey: ["dados-financeiros"] });
+      queryClient.invalidateQueries({ queryKey: ["parcelas"] });
+      const parcelada =
+        values.tipo === "despesa" && values.forma_pagamento === "credito" && values.parcelado;
+      toast.success(
+        parcelada
+          ? "Compra parcelada criada! Ela já aparece em Contas Fixas."
+          : "Lançamento criado com sucesso!",
+      );
       setIsDialogOpen(false);
       form.reset();
     },
@@ -192,6 +254,7 @@ function PaginaMes() {
       data: format(new Date(ano, mes - 1, Math.min(new Date().getDate(), 28)), "yyyy-MM-dd"),
       tipo: tipo,
       status: tipo === "receita" ? "pago" : "pendente",
+      ...VALORES_PADRAO_PAGAMENTO,
     });
     setIsDialogOpen(true);
   };
@@ -492,12 +555,13 @@ function PaginaMes() {
             </CardHeader>
             <CardContent className="p-0">
               <div className="w-full overflow-x-auto">
-                <Table className="min-w-[700px]">
+                <Table className="min-w-[820px]">
                 <TableHeader>
                   <TableRow className="hover:bg-transparent border-b">
                     <TableHead className="w-[120px]">Data</TableHead>
                     <TableHead>Descrição</TableHead>
                     <TableHead>Categoria</TableHead>
+                    <TableHead>Pagamento</TableHead>
                     <TableHead className="text-right">Valor</TableHead>
                     <TableHead className="w-[80px] text-center">Status</TableHead>
                     <TableHead className="w-[60px] text-center">Ações</TableHead>
@@ -523,6 +587,15 @@ function PaginaMes() {
                       </TableCell>
                       <TableCell>
                         {resumo?.gastosPorCategoria[d.categoria_id || '']?.nome || "Sem Categoria"}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                        {d.origin === "fixa"
+                          ? "Conta fixa"
+                          : d.origin === "parcela"
+                            ? "Crédito parcelado"
+                            : d.forma_pagamento
+                              ? rotuloFormaPagamento(d.forma_pagamento)
+                              : "—"}
                       </TableCell>
                       <TableCell className="text-right font-semibold text-negativo">
                         {formatarBRL(d.valor)}
@@ -562,7 +635,7 @@ function PaginaMes() {
                   
                   {despesas.length === 0 && resumo?.totalParcelas === 0 && (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                         Nenhuma despesa para este mês.
                       </TableCell>
                     </TableRow>
@@ -697,7 +770,7 @@ function PaginaMes() {
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {tipoNovoLancamento === "receita" ? "Nova Receita" : "Nova Despesa"}
@@ -727,7 +800,7 @@ function PaginaMes() {
                   name="valor"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Valor (R$)</FormLabel>
+                      <FormLabel>{compraParcelada ? "Valor total da compra (R$)" : "Valor (R$)"}</FormLabel>
                       <FormControl>
                         <Input 
                           type="number" 
@@ -782,6 +855,93 @@ function PaginaMes() {
                   </FormItem>
                 )}
               />
+              {tipoNovoLancamento === "despesa" && (
+                <div className="space-y-4 rounded-lg border bg-muted/30 p-3">
+                  <FormField
+                    control={form.control}
+                    name="forma_pagamento"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Forma de pagamento</FormLabel>
+                        <Select
+                          onValueChange={(v) => {
+                            field.onChange(v);
+                            // Parcelar só existe no crédito.
+                            if (v !== "credito") form.setValue("parcelado", false);
+                          }}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {FORMAS_PAGAMENTO.map((f) => (
+                              <SelectItem key={f.valor} value={f.valor}>
+                                {f.rotulo}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {formaForm === "credito" && (
+                    <>
+                      <FormField
+                        control={form.control}
+                        name="parcelado"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between rounded-md border bg-background p-3">
+                            <div className="space-y-0.5">
+                              <FormLabel>Foi parcelado?</FormLabel>
+                              <p className="text-xs text-muted-foreground">
+                                O valor acima passa a ser o total da compra.
+                              </p>
+                            </div>
+                            <FormControl>
+                              <Switch checked={field.value} onCheckedChange={field.onChange} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+
+                      {parceladoForm && (
+                        <FormField
+                          control={form.control}
+                          name="num_parcelas"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Número de parcelas</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  min={2}
+                                  max={60}
+                                  value={field.value}
+                                  onChange={(e) => field.onChange(paraNumero(e.target.value))}
+                                />
+                              </FormControl>
+                              {valorDaParcela > 0 && (
+                                <p className="text-xs text-muted-foreground">
+                                  {numParcelasForm}x de <strong>{formatarBRL(valorDaParcela)}</strong>.
+                                  Entra automaticamente em Contas Fixas, no bloco "Parcelado no cartão",
+                                  em cada mês até terminar.
+                                </p>
+                              )}
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+              {!compraParcelada && (
               <FormField
                 control={form.control}
                 name="status"
@@ -803,6 +963,7 @@ function PaginaMes() {
                   </FormItem>
                 )}
               />
+              )}
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                   Cancelar

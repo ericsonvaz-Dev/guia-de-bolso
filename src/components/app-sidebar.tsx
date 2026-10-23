@@ -1,6 +1,14 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, CreditCard, LayoutDashboard, LogOut, Receipt, Wallet } from "lucide-react";
+import {
+  CalendarDays,
+  CreditCard,
+  LayoutDashboard,
+  LogOut,
+  Receipt,
+  SearchCheck,
+  Wallet,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -24,6 +32,7 @@ const ITENS = [
   { titulo: "Mês", url: "/mes", icone: CalendarDays },
   { titulo: "Contas Fixas", url: "/contas-fixas", icone: Receipt },
   { titulo: "Parcelas", url: "/parcelas", icone: CreditCard },
+  { titulo: "Análise", url: "/analise", icone: SearchCheck },
 ] as const;
 
 export interface AppSidebarProps {

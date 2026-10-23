@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedAnaliseRouteImport } from './routes/_authenticated/analise'
 import { Route as AuthenticatedContasFixasRouteImport } from './routes/_authenticated/contas-fixas'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedMesRouteImport } from './routes/_authenticated/mes'
@@ -30,6 +31,11 @@ const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedAnaliseRoute = AuthenticatedAnaliseRouteImport.update({
+  id: '/analise',
+  path: '/analise',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedContasFixasRoute =
   AuthenticatedContasFixasRouteImport.update({
@@ -56,6 +62,7 @@ const AuthenticatedParcelasRoute = AuthenticatedParcelasRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/analise': typeof AuthenticatedAnaliseRoute
   '/contas-fixas': typeof AuthenticatedContasFixasRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/mes': typeof AuthenticatedMesRoute
@@ -64,6 +71,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/analise': typeof AuthenticatedAnaliseRoute
   '/contas-fixas': typeof AuthenticatedContasFixasRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/mes': typeof AuthenticatedMesRoute
@@ -74,6 +82,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/analise': typeof AuthenticatedAnaliseRoute
   '/_authenticated/contas-fixas': typeof AuthenticatedContasFixasRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/mes': typeof AuthenticatedMesRoute
@@ -82,14 +91,28 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/auth' | '/contas-fixas' | '/dashboard' | '/mes' | '/parcelas'
+    | '/'
+    | '/auth'
+    | '/analise'
+    | '/contas-fixas'
+    | '/dashboard'
+    | '/mes'
+    | '/parcelas'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/contas-fixas' | '/dashboard' | '/mes' | '/parcelas'
+  to:
+    | '/'
+    | '/auth'
+    | '/analise'
+    | '/contas-fixas'
+    | '/dashboard'
+    | '/mes'
+    | '/parcelas'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/analise'
     | '/_authenticated/contas-fixas'
     | '/_authenticated/dashboard'
     | '/_authenticated/mes'
@@ -125,6 +148,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/analise': {
+      id: '/_authenticated/analise'
+      path: '/analise'
+      fullPath: '/analise'
+      preLoaderRoute: typeof AuthenticatedAnaliseRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/contas-fixas': {
       id: '/_authenticated/contas-fixas'
       path: '/contas-fixas'
@@ -157,6 +187,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAnaliseRoute: typeof AuthenticatedAnaliseRoute
   AuthenticatedContasFixasRoute: typeof AuthenticatedContasFixasRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedMesRoute: typeof AuthenticatedMesRoute
@@ -164,6 +195,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAnaliseRoute: AuthenticatedAnaliseRoute,
   AuthenticatedContasFixasRoute: AuthenticatedContasFixasRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedMesRoute: AuthenticatedMesRoute,
